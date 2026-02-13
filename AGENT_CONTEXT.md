@@ -1,6 +1,6 @@
 # 🤖 Agent Context
 
-> Auto-generated on **2026-02-13 07:23 UTC** by `scripts/update_context.py`.  
+> Auto-generated on **2026-02-13 07:28 UTC** by `scripts/update_context.py`.  
 > Read this file to instantly understand the project's current state.
 
 ## Current Configuration
@@ -11,7 +11,24 @@
 | Fallback Model | `moonshotai/kimi-k2.5` |
 | Agent Timeout | `28s` |
 | Persona Count | `4` |
+| Prompt Strategy | `default` |
 | Platform | Hugging Face Spaces (Docker SDK) |
+
+## Feature Flags
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `FLAG_LLM_EXTRACTION` | `True` | Gate LLM call in extractor (disable to save 2-5s) |
+| `FLAG_STALLING` | `True` | Gate random stalling in persona node |
+| `FLAG_VERBOSE_LOGGING` | `False` | Enable detailed per-node debug logs |
+
+## Prompt Strategies
+
+| Strategy | Hook Style | Stall % | Leak Style |
+|---|---|---|---|
+| `default` | Curious, polite | 20% | Ask for their details first |
+| `aggressive` | Worried, urgent | 5% | Share fake data proactively |
+| `defensive` | Suspicious, cautious | 40% | 2+ verification questions |
 
 ## Environment Keys
 
@@ -31,6 +48,7 @@
 
 ## Recent Changes
 
+- `6e1ebcb feat: add feature flags, prompt strategy variants, response time dashboard`
 - `2a935fa feat: add competition readiness features - session timing, hot-swap config, deploy script, agent context`
 - `57bc4e3 docs: ensure authors are correct and LLM tech stack reflects project reality`
 - `039679f docs: update authors and fix clone URL in README.md`
@@ -40,19 +58,18 @@
 - `0941fdb docs: rewrite README â€” production-ready with architecture, credits, benchmarks, and API reference`
 - `219b2b2 fix: enforce language consistency and expand fallback variety`
 - `ee4393e fix: resolve fallback stalling loop with resilience improvements and diversified responses`
-- `630b83f feat: improve agent flow with randomized stalling and reinforced text-based communication`
 
 ## Key Files Reference
 
 | File | Purpose | Quick Edit |
 |---|---|---|
-| `app/config.py` | Models, timeouts, persona templates | Lines 35-50 |
+| `app/config.py` | Models, timeouts, flags, persona templates | Lines 35-60 |
 | `app/agent/workflow.py` | LangGraph node wiring | Lines 1-50 |
-| `app/agent/nodes/persona.py` | Persona prompt + OWASP defenses | Lines 24-42 |
+| `app/agent/nodes/persona.py` | Persona prompt + strategies + OWASP | Lines 24-65 |
 | `app/agent/nodes/detector.py` | Keyword heuristic classification | Lines 32-54 |
-| `app/agent/nodes/extractor.py` | Regex + LLM intel extraction | Lines 122-240 |
+| `app/agent/nodes/extractor.py` | Regex + LLM intel extraction | Lines 122-260 |
 | `app/agent/nodes/output.py` | Turn counter + termination logic | Lines 51-126 |
-| `app/core/routes.py` | API endpoints (webhook, admin) | Lines 69-300 |
+| `app/core/routes.py` | API endpoints (webhook, admin, dashboard) | Lines 69-420 |
 | `app/agent/llm.py` | LLM call routing + retry + fallback | Lines 60-165 |
 | `app/core/rules.py` | Keywords, regex patterns, prompts | Full file |
 
@@ -61,8 +78,9 @@
 | Endpoint | Method | Purpose |
 |---|---|---|
 | `/admin/timing` | GET | Recent session timing data |
-| `/admin/config` | GET | View current runtime config |
-| `/admin/config` | POST | Hot-swap model config (requires API key) |
+| `/admin/config` | GET | View current runtime config + flags |
+| `/admin/config` | POST | Hot-swap models, flags, strategy (requires API key) |
+| `/admin/dashboard` | GET | Live performance dashboard (HTML) |
 | `/health/diag` | GET | Environment diagnostic |
 
 ## Known Issues / Notes

@@ -46,8 +46,19 @@ def get_config_values() -> dict:
         m = re.search(r'AGENT_TIMEOUT.*?=\s*(\d+)', content)
         values["agent_timeout"] = m.group(1) if m else "28"
         
+        # Extract feature flags
+        for flag in ['FLAG_LLM_EXTRACTION', 'FLAG_STALLING', 'FLAG_VERBOSE_LOGGING']:
+            m = re.search(rf'{flag}.*?=\s*(True|False)', content)
+            values[flag.lower()] = m.group(1) if m else "True"
+        
+        # Extract prompt strategy
+        m = re.search(r'PROMPT_STRATEGY.*?=\s*"([^"]+)"', content)
+        values["prompt_strategy"] = m.group(1) if m else "default"
+        
     except FileNotFoundError:
-        values = {"model_primary": "unknown", "model_fallback": "unknown", "agent_timeout": "28"}
+        values = {"model_primary": "unknown", "model_fallback": "unknown", "agent_timeout": "28",
+                  "flag_llm_extraction": "True", "flag_stalling": "True", "flag_verbose_logging": "False",
+                  "prompt_strategy": "default"}
     
     return values
 
@@ -173,7 +184,24 @@ def generate_context() -> str:
 | Fallback Model | `{config['model_fallback']}` |
 | Agent Timeout | `{config['agent_timeout']}s` |
 | Persona Count | `{persona_count}` |
+| Prompt Strategy | `{config['prompt_strategy']}` |
 | Platform | Hugging Face Spaces (Docker SDK) |
+
+## Feature Flags
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `FLAG_LLM_EXTRACTION` | `{config['flag_llm_extraction']}` | Gate LLM call in extractor (disable to save 2-5s) |
+| `FLAG_STALLING` | `{config['flag_stalling']}` | Gate random stalling in persona node |
+| `FLAG_VERBOSE_LOGGING` | `{config['flag_verbose_logging']}` | Enable detailed per-node debug logs |
+
+## Prompt Strategies
+
+| Strategy | Hook Style | Stall % | Leak Style |
+|---|---|---|---|
+| `default` | Curious, polite | 20% | Ask for their details first |
+| `aggressive` | Worried, urgent | 5% | Share fake data proactively |
+| `defensive` | Suspicious, cautious | 40% | 2+ verification questions |
 
 ## Environment Keys
 
@@ -193,13 +221,13 @@ def generate_context() -> str:
 
 | File | Purpose | Quick Edit |
 |---|---|---|
-| `app/config.py` | Models, timeouts, persona templates | Lines 35-50 |
+| `app/config.py` | Models, timeouts, flags, persona templates | Lines 35-60 |
 | `app/agent/workflow.py` | LangGraph node wiring | Lines 1-50 |
-| `app/agent/nodes/persona.py` | Persona prompt + OWASP defenses | Lines 24-42 |
+| `app/agent/nodes/persona.py` | Persona prompt + strategies + OWASP | Lines 24-65 |
 | `app/agent/nodes/detector.py` | Keyword heuristic classification | Lines 32-54 |
-| `app/agent/nodes/extractor.py` | Regex + LLM intel extraction | Lines 122-240 |
+| `app/agent/nodes/extractor.py` | Regex + LLM intel extraction | Lines 122-260 |
 | `app/agent/nodes/output.py` | Turn counter + termination logic | Lines 51-126 |
-| `app/core/routes.py` | API endpoints (webhook, admin) | Lines 69-300 |
+| `app/core/routes.py` | API endpoints (webhook, admin, dashboard) | Lines 69-420 |
 | `app/agent/llm.py` | LLM call routing + retry + fallback | Lines 60-165 |
 | `app/core/rules.py` | Keywords, regex patterns, prompts | Full file |
 
@@ -208,8 +236,9 @@ def generate_context() -> str:
 | Endpoint | Method | Purpose |
 |---|---|---|
 | `/admin/timing` | GET | Recent session timing data |
-| `/admin/config` | GET | View current runtime config |
-| `/admin/config` | POST | Hot-swap model config (requires API key) |
+| `/admin/config` | GET | View current runtime config + flags |
+| `/admin/config` | POST | Hot-swap models, flags, strategy (requires API key) |
+| `/admin/dashboard` | GET | Live performance dashboard (HTML) |
 | `/health/diag` | GET | Environment diagnostic |
 
 {known_issues}"""
