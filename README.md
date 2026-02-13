@@ -430,10 +430,4 @@ This project is open-source and available under the [MIT License](LICENSE).
 
 ---
 
-<div align="center">
-<br>
 
-**Built with 🍯 to waste scammers' time so they can't waste yours.**
-
-<br>
-</div>
