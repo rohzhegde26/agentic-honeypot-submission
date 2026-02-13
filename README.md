@@ -1,3 +1,14 @@
+---
+title: Agentic Honeypot
+emoji: 🍯
+colorFrom: yellow
+colorTo: red
+sdk: docker
+pinned: false
+---
+
+<div align="center">
+
 # 🍯 Agentic Honey-Pot
 
 ### AI-Powered Scam Engagement & Intelligence Extraction System
@@ -367,8 +378,7 @@ Built for the **India AI Impact Buildathon** hosted by [GUVI](https://www.guvi.i
 
 **Problem Statement**: Build an AI-powered agentic honeypot that detects scam messages, autonomously engages fraudsters in multi-turn conversations, extracts actionable intelligence, and reports results back to the evaluation platform — all while maintaining a fully believable human persona.
 
-**Author**: Rohith P Hegde
-**Team**: RohitBharadwaj-rvu
+**Authors**: Rohit P Hegde, Rohit Bharadwaj & S Sachitanandan
 
 ---
 
@@ -430,4 +440,10 @@ This project is open-source and available under the [MIT License](LICENSE).
 
 ---
 
+<div align="center">
+<br>
 
+**Built with 🍯 to waste scammers' time so they can't waste yours.**
+
+<br>
+</div>
