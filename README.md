@@ -1,14 +1,3 @@
----
-title: Agentic Honeypot
-emoji: 🍯
-colorFrom: yellow
-colorTo: red
-sdk: docker
-pinned: false
----
-
-<div align="center">
-
 # 🍯 Agentic Honey-Pot
 
 ### AI-Powered Scam Engagement & Intelligence Extraction System
