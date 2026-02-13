@@ -152,7 +152,13 @@ def extractor_node(state: AgentState) -> Dict[str, Any]:
     llm_staff = []
     
     # Use LLM if regex missed critical intel or if we want better name/staff coverage
-    needs_llm = not (regex_upi or regex_links or regex_accounts)
+    # Feature flag: skip LLM extraction entirely if disabled (saves ~2-5s latency)
+    from app.config import get_settings
+    settings = get_settings()
+    needs_llm = not (regex_upi or regex_links or regex_accounts) and settings.FLAG_LLM_EXTRACTION
+    
+    if not settings.FLAG_LLM_EXTRACTION:
+        logger.info("LLM extraction DISABLED by feature flag")
     
     if needs_llm:
         # Build context for LLM

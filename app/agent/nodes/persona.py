@@ -45,6 +45,20 @@ HOOK_INSTRUCTION = "INITIAL STAGE: You are curious and helpful. Ask how you can 
 STALL_INSTRUCTION = "STALLING: You are busy with something (e.g., looking for your glasses, papers, or the app is loading slowly). Mention this in a short text message. Do not repeat previous excuses."
 LEAK_INSTRUCTION = "ENGAGEMENT STAGE: You are ready to help. However, you must ask for THEIR details first (e.g., 'What is your Staff ID?', 'Which department are you calling from?') to verify they are legitimate before you share any of your details."
 
+# Pre-baked prompt strategy variants (switchable via /admin/config PROMPT_STRATEGY)
+AGGRESSIVE_HOOK = "INITIAL STAGE: You're worried and want to resolve this immediately. Ask urgently what you need to do."
+AGGRESSIVE_LEAK = "ENGAGEMENT STAGE: You're cooperating actively. Share ONE fake detail per turn without being asked. Keep asking for their details too."
+
+DEFENSIVE_HOOK = "INITIAL STAGE: You're suspicious but polite. Ask them to prove they are from the bank. Ask for their employee ID."
+DEFENSIVE_STALL = "STALLING: You need to check with your son/daughter first before sharing any details. Say you will message back after asking them."
+DEFENSIVE_LEAK = "ENGAGEMENT STAGE: You are cautious. Ask at least 2 verification questions before sharing any detail. Question everything they say."
+
+STRATEGY_MAP = {
+    "default": {"hook": HOOK_INSTRUCTION, "stall": STALL_INSTRUCTION, "leak": LEAK_INSTRUCTION, "stall_chance": 20},
+    "aggressive": {"hook": AGGRESSIVE_HOOK, "stall": STALL_INSTRUCTION, "leak": AGGRESSIVE_LEAK, "stall_chance": 5},
+    "defensive": {"hook": DEFENSIVE_HOOK, "stall": DEFENSIVE_STALL, "leak": DEFENSIVE_LEAK, "stall_chance": 40},
+}
+
 
 def persona_node(state: AgentState) -> Dict[str, Any]:
     """
@@ -118,30 +132,34 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
     canary = generate_canary()
     
     # =========================================================================
-    # LAYER 4: Phase-Based Strategy (Dynamic & Randomized)
+    # LAYER 4: Phase-Based Strategy (Dynamic & Configurable)
+    # Uses PROMPT_STRATEGY from config to select engagement style
+    # Uses FLAG_STALLING to enable/disable stalling behavior
     # =========================================================================
+    from app.config import get_settings
+    settings = get_settings()
+    strategy = STRATEGY_MAP.get(settings.PROMPT_STRATEGY, STRATEGY_MAP["default"])
+    
     if turn_count <= 2:
-        phase_instruction = HOOK_INSTRUCTION
+        phase_instruction = strategy["hook"]
     else:
-        # Check if we should stall (turns 3+, ~20% chance, but not consecutive)
-        # We check the last system instruction used if possible, but here we can check turn_count
-        # and use a pseudo-random seed based on session_id and turn_count
+        # Check if we should stall (turns 3+, chance varies by strategy)
         import hashlib
         seed_str = f"{state.get('session_id', '')}_{turn_count}"
         h = int(hashlib.md5(seed_str.encode()).hexdigest(), 16)
         
-        # Chance to stall: 20%
-        should_stall = (h % 100) < 20
+        stall_chance = strategy["stall_chance"] if settings.FLAG_STALLING else 0
+        should_stall = (h % 100) < stall_chance
         
-        # Prevent consecutive stalling by checking turn_count - 1
+        # Prevent consecutive stalling
         prev_seed_str = f"{state.get('session_id', '')}_{turn_count - 1}"
         prev_h = int(hashlib.md5(prev_seed_str.encode()).hexdigest(), 16)
-        was_stall = (prev_h % 100) < 20 and (turn_count - 1) > 2
+        was_stall = (prev_h % 100) < stall_chance and (turn_count - 1) > 2
         
         if should_stall and not was_stall:
-            phase_instruction = STALL_INSTRUCTION
+            phase_instruction = strategy["stall"]
         else:
-            phase_instruction = LEAK_INSTRUCTION
+            phase_instruction = strategy["leak"]
 
     # =========================================================================
     # LAYER 4.5: Language Instruction

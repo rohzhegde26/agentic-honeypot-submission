@@ -45,6 +45,14 @@ class Settings(BaseSettings):
     # Debug Mode
     DEBUG: bool = False
     
+    # Feature Flags (toggleable at runtime via /admin/config)
+    FLAG_LLM_EXTRACTION: bool = True    # Enable LLM-reinforced extraction (disable to save latency)
+    FLAG_STALLING: bool = True           # Enable random stalling behavior in persona
+    FLAG_VERBOSE_LOGGING: bool = False   # Enable detailed per-node debug logs
+    
+    # Prompt Strategy: "default", "aggressive", "defensive"
+    PROMPT_STRATEGY: str = "default"
+    
     # Session Configuration
     SESSION_TTL_SECONDS: int = 3600  # 1 hour as per requirements
     SESSION_KEY_PREFIX: str = "honeypot:session:"

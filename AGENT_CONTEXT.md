@@ -1,6 +1,6 @@
 # 🤖 Agent Context
 
-> Auto-generated on **2026-02-13 06:57 UTC** by `scripts/update_context.py`.  
+> Auto-generated on **2026-02-13 07:23 UTC** by `scripts/update_context.py`.  
 > Read this file to instantly understand the project's current state.
 
 ## Current Configuration
@@ -31,6 +31,7 @@
 
 ## Recent Changes
 
+- `2a935fa feat: add competition readiness features - session timing, hot-swap config, deploy script, agent context`
 - `57bc4e3 docs: ensure authors are correct and LLM tech stack reflects project reality`
 - `039679f docs: update authors and fix clone URL in README.md`
 - `9939392 docs: update authors to Rohit P Hegde, Rohit Bharadwaj & S Sachitanandan; remove team name`
@@ -40,7 +41,6 @@
 - `219b2b2 fix: enforce language consistency and expand fallback variety`
 - `ee4393e fix: resolve fallback stalling loop with resilience improvements and diversified responses`
 - `630b83f feat: improve agent flow with randomized stalling and reinforced text-based communication`
-- `b39cf44 Fix: Increase timeout to 28s, reduce tokens to 100, shave persona prompt for speed`
 
 ## Key Files Reference
 

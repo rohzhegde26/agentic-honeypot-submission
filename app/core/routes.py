@@ -258,6 +258,10 @@ class ConfigUpdate(BaseModel):
     model_primary: Optional[str] = None
     model_fallback: Optional[str] = None
     debug: Optional[bool] = None
+    flag_llm_extraction: Optional[bool] = None
+    flag_stalling: Optional[bool] = None
+    flag_verbose_logging: Optional[bool] = None
+    prompt_strategy: Optional[str] = None  # "default", "aggressive", "defensive"
 
 
 @router.post("/admin/config", dependencies=[Depends(verify_api_key)])
@@ -278,6 +282,21 @@ async def admin_config_update(update: ConfigUpdate):
     if update.debug is not None:
         settings.DEBUG = update.debug
         changes["DEBUG"] = update.debug
+    if update.flag_llm_extraction is not None:
+        settings.FLAG_LLM_EXTRACTION = update.flag_llm_extraction
+        changes["FLAG_LLM_EXTRACTION"] = update.flag_llm_extraction
+    if update.flag_stalling is not None:
+        settings.FLAG_STALLING = update.flag_stalling
+        changes["FLAG_STALLING"] = update.flag_stalling
+    if update.flag_verbose_logging is not None:
+        settings.FLAG_VERBOSE_LOGGING = update.flag_verbose_logging
+        changes["FLAG_VERBOSE_LOGGING"] = update.flag_verbose_logging
+    if update.prompt_strategy is not None:
+        if update.prompt_strategy in ("default", "aggressive", "defensive"):
+            settings.PROMPT_STRATEGY = update.prompt_strategy
+            changes["PROMPT_STRATEGY"] = update.prompt_strategy
+        else:
+            return {"status": "error", "message": "Invalid strategy. Choose: default, aggressive, defensive"}
     
     # Clear client cache so new config takes effect
     clear_client_cache()
@@ -295,5 +314,127 @@ async def admin_config_view():
         "MODEL_PRIMARY": settings.MODEL_PRIMARY,
         "MODEL_FALLBACK": settings.MODEL_FALLBACK,
         "DEBUG": settings.DEBUG,
+        "FLAG_LLM_EXTRACTION": settings.FLAG_LLM_EXTRACTION,
+        "FLAG_STALLING": settings.FLAG_STALLING,
+        "FLAG_VERBOSE_LOGGING": settings.FLAG_VERBOSE_LOGGING,
+        "PROMPT_STRATEGY": settings.PROMPT_STRATEGY,
     }
+
+
+DASHBOARD_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Honeypot Performance Dashboard</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',sans-serif; background:#0d1117; color:#c9d1d9; padding:24px; }
+  h1 { color:#58a6ff; margin-bottom:8px; font-size:1.6rem; }
+  .subtitle { color:#8b949e; margin-bottom:24px; font-size:0.9rem; }
+  .stats { display:flex; gap:16px; margin-bottom:24px; flex-wrap:wrap; }
+  .stat-card { background:#161b22; border:1px solid #30363d; border-radius:8px; padding:16px 24px; min-width:140px; }
+  .stat-value { font-size:1.8rem; font-weight:700; color:#58a6ff; }
+  .stat-label { font-size:0.8rem; color:#8b949e; margin-top:4px; }
+  .config-panel { background:#161b22; border:1px solid #30363d; border-radius:8px; padding:16px; margin-bottom:24px; }
+  .config-panel h3 { color:#58a6ff; margin-bottom:8px; }
+  .flag { display:inline-block; padding:4px 10px; border-radius:4px; font-size:0.8rem; margin:2px 4px; }
+  .flag-on { background:#238636; color:#fff; }
+  .flag-off { background:#da3633; color:#fff; }
+  .flag-strategy { background:#1f6feb; color:#fff; }
+  table { width:100%; border-collapse:collapse; background:#161b22; border-radius:8px; overflow:hidden; }
+  th { background:#21262d; color:#8b949e; text-align:left; padding:10px 12px; font-size:0.85rem; font-weight:600; }
+  td { padding:10px 12px; border-top:1px solid #30363d; font-size:0.85rem; }
+  tr:hover { background:#1c2128; }
+  .fast { color:#3fb950; }
+  .medium { color:#d29922; }
+  .slow { color:#f85149; }
+  .refresh { color:#8b949e; font-size:0.75rem; margin-top:12px; }
+</style>
+</head>
+<body>
+  <h1>🍯 Honeypot Performance Dashboard</h1>
+  <p class="subtitle">Auto-refreshes every 5 seconds</p>
+  <div class="config-panel" id="config">Loading config...</div>
+  <div class="stats" id="stats">Loading...</div>
+  <table>
+    <thead><tr><th>Session</th><th>Turn</th><th>Total</th><th>Detector</th><th>Extractor</th><th>Persona</th><th>Output</th><th>Model</th></tr></thead>
+    <tbody id="tbody">Loading...</tbody>
+  </table>
+  <p class="refresh" id="lastUpdate"></p>
+<script>
+function colorize(ms) {
+  if (ms === '-') return '';
+  const v = parseFloat(ms);
+  if (v < 1000) return 'fast';
+  if (v < 5000) return 'medium';
+  return 'slow';
+}
+function nodeMs(nodes, name) {
+  const n = nodes.find(e => e.node === name);
+  if (!n) return '-';
+  let t = n.duration_ms + 'ms';
+  if (n.llm_ms) t += ` (LLM: ${n.llm_ms}ms)`;
+  return t;
+}
+async function refresh() {
+  try {
+    const [tRes, cRes] = await Promise.all([fetch('/admin/timing?limit=30'), fetch('/admin/config')]);
+    const tData = await tRes.json();
+    const cData = await cRes.json();
+    // Config panel
+    document.getElementById('config').innerHTML = `<h3>Runtime Config</h3>
+      <span class="flag flag-strategy">${cData.PROMPT_STRATEGY} strategy</span>
+      <span class="flag ${cData.FLAG_LLM_EXTRACTION?'flag-on':'flag-off'}">LLM Extraction: ${cData.FLAG_LLM_EXTRACTION?'ON':'OFF'}</span>
+      <span class="flag ${cData.FLAG_STALLING?'flag-on':'flag-off'}">Stalling: ${cData.FLAG_STALLING?'ON':'OFF'}</span>
+      <span class="flag ${cData.FLAG_VERBOSE_LOGGING?'flag-on':'flag-off'}">Verbose: ${cData.FLAG_VERBOSE_LOGGING?'ON':'OFF'}</span>
+      <span class="flag flag-strategy">${cData.MODEL_PRIMARY.split('/').pop()}</span>`;
+    // Stats
+    const timings = tData.timings || [];
+    if (timings.length === 0) {
+      document.getElementById('stats').innerHTML = '<div class="stat-card"><div class="stat-label">No data yet</div></div>';
+      document.getElementById('tbody').innerHTML = '<tr><td colspan="8">No timing data. Send a message to populate.</td></tr>';
+    } else {
+      const totals = timings.map(t => t.total_ms);
+      const avg = (totals.reduce((a,b)=>a+b,0)/totals.length).toFixed(0);
+      const sorted = [...totals].sort((a,b)=>a-b);
+      const p50 = sorted[Math.floor(sorted.length*0.5)]?.toFixed(0) || '-';
+      const p95 = sorted[Math.floor(sorted.length*0.95)]?.toFixed(0) || '-';
+      const fastest = Math.min(...totals).toFixed(0);
+      document.getElementById('stats').innerHTML = `
+        <div class="stat-card"><div class="stat-value">${timings.length}</div><div class="stat-label">Sessions</div></div>
+        <div class="stat-card"><div class="stat-value ${colorize(avg)}">${avg}ms</div><div class="stat-label">Avg Latency</div></div>
+        <div class="stat-card"><div class="stat-value ${colorize(p50)}">${p50}ms</div><div class="stat-label">P50</div></div>
+        <div class="stat-card"><div class="stat-value ${colorize(p95)}">${p95}ms</div><div class="stat-label">P95</div></div>
+        <div class="stat-card"><div class="stat-value ${colorize(fastest)}">${fastest}ms</div><div class="stat-label">Fastest</div></div>`;
+      document.getElementById('tbody').innerHTML = timings.reverse().map(t => {
+        const nodes = t.nodes || [];
+        return `<tr>
+          <td>${t.session_id?.substring(0,12) || '?'}</td>
+          <td>${t.turn || '-'}</td>
+          <td class="${colorize(t.total_ms)}">${t.total_ms}ms</td>
+          <td>${nodeMs(nodes,'detector')}</td>
+          <td>${nodeMs(nodes,'extractor')}</td>
+          <td>${nodeMs(nodes,'persona')}</td>
+          <td>${nodeMs(nodes,'output')}</td>
+          <td>${(t.model_primary||'').split('/').pop()}</td>
+        </tr>`;
+      }).join('');
+    }
+    document.getElementById('lastUpdate').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+  } catch(e) { console.error(e); }
+}
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>
+"""
+
+
+@router.get("/admin/dashboard")
+async def admin_dashboard():
+    """Response time dashboard with live auto-refresh."""
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(content=DASHBOARD_HTML)
 
