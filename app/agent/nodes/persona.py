@@ -6,6 +6,7 @@ Calls call_llm for response generation.
 SECURITY: Implements OWASP 2025 LLM Top 10 defenses against prompt injection.
 """
 import logging
+import time
 from typing import Dict, Any, List
 import random
 
@@ -58,6 +59,8 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
     6. Canary leak detection
     """
     raw_message = state["current_user_message"]
+    t_start = time.perf_counter()
+    llm_duration_ms = 0.0
     messages = state.get("messages", [])
     turn_count = state.get("turn_count", 1)
     language_code = state.get("language", "en")
@@ -101,10 +104,12 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
         # Use turn count to vary response
         reply = rejection_responses[turn_count % len(rejection_responses)]
         
+        duration_ms = round((time.perf_counter() - t_start) * 1000, 1)
         return {
             "agent_reply": reply,
             "messages": [{"sender": "agent", "text": reply}],
             "agent_notes": f"BLOCKED: {attack_type} attack detected",
+            "timing_log": [{"node": "persona", "duration_ms": duration_ms, "metadata": {"blocked": attack_type}}],
         }
     
     # =========================================================================
@@ -203,7 +208,9 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
     # =========================================================================
     # LAYER 7: Call LLM
     # =========================================================================
+    t_llm_start = time.perf_counter()
     raw_reply = call_llm("persona", llm_messages)
+    llm_duration_ms = round((time.perf_counter() - t_llm_start) * 1000, 1)
     
     # =========================================================================
     # LAYER 8: Output Sanitization
@@ -221,8 +228,10 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
     if not reply or len(reply) < 10:
         reply = "Sir I am not understanding... can you please explain again what is the issue?"
     
+    duration_ms = round((time.perf_counter() - t_start) * 1000, 1)
     return {
         "agent_reply": reply,
         "messages": [{"sender": "agent", "text": reply}],
+        "timing_log": [{"node": "persona", "duration_ms": duration_ms, "llm_ms": llm_duration_ms}],
     }
 

@@ -1,0 +1,28 @@
+name: Update Agent Context
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  update-context:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 10
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate AGENT_CONTEXT.md
+        run: python scripts/update_context.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add AGENT_CONTEXT.md
+          git diff --cached --quiet || git commit -m "chore: auto-update AGENT_CONTEXT.md"
+          git push

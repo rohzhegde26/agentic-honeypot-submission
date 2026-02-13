@@ -61,3 +61,6 @@ class AgentState(TypedDict):
     channel: str
     language: str
     locale: str
+    
+    # Timing instrumentation (appended by each node)
+    timing_log: Annotated[List[Dict], operator.add]

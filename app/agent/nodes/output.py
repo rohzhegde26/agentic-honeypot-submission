@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Dict, Any, List
 
 from app.agent.state import AgentState
@@ -59,6 +60,7 @@ def output_node(state: AgentState) -> Dict[str, Any]:
     - Max turns: 25 turns safety cap.
     """
     turn_count = state.get("turn_count", 0)
+    t_start = time.perf_counter()
     agent_reply = state.get("agent_reply", "")
     extracted_intel = state.get("extracted_intelligence", {})
     is_scam_confirmed = state.get("is_scam_confirmed", False)
@@ -115,11 +117,14 @@ def output_node(state: AgentState) -> Dict[str, Any]:
     # Generate agent notes
     agent_notes = _generate_agent_notes(state)
     
+    duration_ms = round((time.perf_counter() - t_start) * 1000, 1)
+    
     return {
         "turn_count": new_turn_count,
         "agent_reply": agent_reply,
         "termination_reason": termination_reason,
         "agent_notes": agent_notes,
-        "intel_found_at_turn": current_intel_found_at  # Persist this in the state
+        "intel_found_at_turn": current_intel_found_at,
+        "timing_log": [{"node": "output", "duration_ms": duration_ms}],
     }
 

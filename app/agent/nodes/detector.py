@@ -3,6 +3,7 @@ Scam Detector Node.
 Analyzes incoming messages to classify as safe/suspected/confirmed scam.
 Uses keyword heuristics only (deterministic).
 """
+import time
 from typing import Dict, Any
 
 from app.agent.state import AgentState
@@ -27,27 +28,43 @@ def detector_node(state: AgentState) -> Dict[str, Any]:
     - If message contains urgency / KYC / blocked → suspected (confidence: 0.6)
     - Else → safe (confidence: 0.1)
     """
+    t_start = time.perf_counter()
+    
     message = state["current_user_message"].lower()
     
+    result: Dict[str, Any] = {}
+    
     # Check for confirmed scam indicators
+    matched = False
     for keyword in CONFIRMED_SCAM_KEYWORDS:
         if keyword in message:
-            return {
+            result = {
                 "scam_level": "confirmed",
                 "scam_confidence": CONFIDENCE_CONFIRMED,
                 "is_scam_confirmed": True,
             }
+            matched = True
+            break
     
-    # Check for suspected scam indicators
-    for keyword in SUSPECTED_SCAM_KEYWORDS:
-        if keyword in message:
-            return {
-                "scam_level": "suspected",
-                "scam_confidence": CONFIDENCE_SUSPECTED,
-            }
+    if not matched:
+        # Check for suspected scam indicators
+        for keyword in SUSPECTED_SCAM_KEYWORDS:
+            if keyword in message:
+                result = {
+                    "scam_level": "suspected",
+                    "scam_confidence": CONFIDENCE_SUSPECTED,
+                }
+                matched = True
+                break
     
-    # Default: safe
-    return {
-        "scam_level": "safe",
-        "scam_confidence": CONFIDENCE_SAFE,
-    }
+    if not matched:
+        # Default: safe
+        result = {
+            "scam_level": "safe",
+            "scam_confidence": CONFIDENCE_SAFE,
+        }
+    
+    duration_ms = round((time.perf_counter() - t_start) * 1000, 1)
+    result["timing_log"] = [{"node": "detector", "duration_ms": duration_ms}]
+    return result
+

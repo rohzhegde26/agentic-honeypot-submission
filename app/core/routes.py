@@ -4,11 +4,16 @@ Defines webhook and health check endpoints.
 """
 import logging
 import asyncio
-from fastapi import APIRouter, Depends
+import time
+from fastapi import APIRouter, Depends, Request
+from pydantic import BaseModel
+from typing import Optional
 
 from app.schemas import WebhookRequest, WebhookResponse, SessionData, MetadataInput
 from app.services import get_session_manager, SessionManager
 from app.services import send_final_report, should_send_callback
+from app.services.timing import record_session_timing, get_recent_timings
+from app.config import get_settings
 from app.core.security import verify_api_key
 from app.agent import run_agent
 
@@ -83,6 +88,7 @@ async def webhook(
     5. Returns the agent's reply
     """
     logger.info(f"Webhook received for session: {request.sessionId}")
+    t_webhook_start = time.perf_counter()
     
     # Get or create session
     session = await session_manager.get_session(request.sessionId)
@@ -171,6 +177,20 @@ async def webhook(
         
         reply = agent_result.get("agent_reply", "Hello? Who is this?")
         
+        # Record timing
+        timing_log = agent_result.get("timing_log", [])
+        total_ms = round((time.perf_counter() - t_webhook_start) * 1000, 1)
+        timing_summary = {
+            "session_id": request.sessionId,
+            "turn": session.turn_count,
+            "total_ms": total_ms,
+            "nodes": timing_log,
+            "model_primary": getattr(get_settings(), 'MODEL_PRIMARY', 'unknown'),
+        }
+        record_session_timing(timing_summary)
+        node_parts = " ".join(f"{e.get('node','?').upper()}={e.get('duration_ms',0)}ms" for e in timing_log)
+        logger.info(f"TIMING session={request.sessionId} turn={session.turn_count} TOTAL={total_ms}ms {node_parts}")
+        
     except asyncio.TimeoutError:
         logger.error(f"Agent timeout for session {request.sessionId} after {AGENT_TIMEOUT_SECONDS}s")
         reply = "Plese message again sir... my phone is showing error and I am not able to see properly."
@@ -222,3 +242,58 @@ async def api_honeypot(
     Mirrors the webhook behavior and response shape.
     """
     return await webhook(request, api_key=api_key, session_manager=session_manager)
+
+
+# =============================================================================
+# Admin Endpoints
+# =============================================================================
+
+@router.get("/admin/timing")
+async def admin_timing(limit: int = 20):
+    """Returns recent session timing data for performance analysis."""
+    return {"timings": get_recent_timings(limit)}
+
+
+class ConfigUpdate(BaseModel):
+    model_primary: Optional[str] = None
+    model_fallback: Optional[str] = None
+    debug: Optional[bool] = None
+
+
+@router.post("/admin/config", dependencies=[Depends(verify_api_key)])
+async def admin_config_update(update: ConfigUpdate):
+    """Hot-swap model config at runtime without restarting."""
+    from app.config import get_settings
+    from app.agent.llm import clear_client_cache
+    
+    settings = get_settings()
+    changes = {}
+    
+    if update.model_primary is not None:
+        settings.MODEL_PRIMARY = update.model_primary
+        changes["MODEL_PRIMARY"] = update.model_primary
+    if update.model_fallback is not None:
+        settings.MODEL_FALLBACK = update.model_fallback
+        changes["MODEL_FALLBACK"] = update.model_fallback
+    if update.debug is not None:
+        settings.DEBUG = update.debug
+        changes["DEBUG"] = update.debug
+    
+    # Clear client cache so new config takes effect
+    clear_client_cache()
+    
+    logger.info(f"Config updated: {changes}")
+    return {"status": "updated", "changes": changes}
+
+
+@router.get("/admin/config")
+async def admin_config_view():
+    """View current runtime config."""
+    from app.config import get_settings
+    settings = get_settings()
+    return {
+        "MODEL_PRIMARY": settings.MODEL_PRIMARY,
+        "MODEL_FALLBACK": settings.MODEL_FALLBACK,
+        "DEBUG": settings.DEBUG,
+    }
+

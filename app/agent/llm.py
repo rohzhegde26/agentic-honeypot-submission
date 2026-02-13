@@ -22,6 +22,12 @@ _script_fallback_index = random.randint(0, 100)
 _clients_cache: Dict[str, OpenAI] = {}
 
 
+def clear_client_cache():
+    """Clear the cached OpenAI clients so new config takes effect."""
+    _clients_cache.clear()
+    logger.info("LLM client cache cleared")
+
+
 def get_openai_client(api_key: Optional[str] = None) -> OpenAI:
     """Get or create a persistent OpenAI client instance for a specific key."""
     settings = get_settings()

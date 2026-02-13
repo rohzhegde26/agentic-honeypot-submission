@@ -6,6 +6,7 @@ Only updates extracted_intelligence, never overwrites existing values.
 import re
 import json
 import logging
+import time
 from typing import Dict, Any, List
 
 from app.agent.state import AgentState
@@ -128,6 +129,9 @@ def extractor_node(state: AgentState) -> Dict[str, Any]:
     
     Does NOT modify: scam_level, termination_reason
     """
+    t_start = time.perf_counter()
+    llm_duration_ms = 0.0
+    
     message = state["current_user_message"]
     messages = state.get("messages", [])
     
@@ -168,7 +172,9 @@ def extractor_node(state: AgentState) -> Dict[str, Any]:
             {"role": "user", "content": context},
         ]
         
+        t_llm_start = time.perf_counter()
         llm_response = call_llm("extract", llm_messages)
+        llm_duration_ms = round((time.perf_counter() - t_llm_start) * 1000, 1)
         llm_data = _parse_llm_extraction(llm_response)
         
         llm_upi = llm_data["upiIds"]
@@ -226,9 +232,15 @@ def extractor_node(state: AgentState) -> Dict[str, Any]:
         merged_intel["phishingLinks"]
     )
     
+    duration_ms = round((time.perf_counter() - t_start) * 1000, 1)
+    timing_entry = {"node": "extractor", "duration_ms": duration_ms}
+    if llm_duration_ms:
+        timing_entry["llm_ms"] = llm_duration_ms
+    
     result = {
         "extracted_intelligence": merged_intel,
         "agent_notes": notes,
+        "timing_log": [timing_entry],
     }
     
     if has_critical_intel:

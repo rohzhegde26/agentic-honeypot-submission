@@ -193,6 +193,7 @@ async def run_agent(
         "channel": metadata.get("channel", "SMS"),
         "language": metadata.get("language", "en"),
         "locale": metadata.get("locale", "IN"),
+        "timing_log": [],
     }
     
     # Run the graph
