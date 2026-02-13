@@ -117,7 +117,7 @@ graph TD
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/RohitBharadwaj-rvu/agentic-honeypot.git
+git clone https://huggingface.co/spaces/GateKeepers1/agentic-honeypot
 cd agentic-honeypot
 pip install -r requirements.txt
 ```
@@ -413,8 +413,7 @@ This project stands on the shoulders of many incredible open-source projects, fr
 ### 📊 Datasets
 
 - **[SMS Spam Collection Dataset](https://archive.ics.uci.edu/dataset/228/sms+spam+collection)** — Curated by Tiago A. Almeida and José María Gómez Hidalgo. A public dataset of 5,574 SMS messages tagged as spam or ham. Published via the [UCI Machine Learning Repository](https://archive.ics.uci.edu/). Used for training and validating scam detection heuristics.
-  > *Citation: Almeida, T.A., Gómez Hidalgo, J.M., Yamakami, A. Contributions to the Study of SMS Spam Filtering: New Collection and Results. Proceedings of the 2011 ACM Symposium on Document Engineering (DOCENG '11).*
-- **India-Specific Spam/Ham Dataset** (`spam_ham_india.csv`) — A dataset of SMS messages specifically curated for the Indian context, used to fine-tune detection keywords for region-specific scam patterns (UPI fraud, KYC scams, Aadhaar-related fraud).
+  > *Citation: Almeida, T.A., Gómez Hidalgo, J.M., Yamakami, A. Contributions to the Study of SMS Spam Filtering: New Collection and Results. Proceedings of the 2011 ACM Symposium on Document Engineering (DOCENG '11).*\n- **India-Specific Spam/Ham Dataset** (`spam_ham_india.csv`) — A dataset of SMS messages specifically curated for the Indian context, used to fine-tune detection keywords for region-specific scam patterns (UPI fraud, KYC scams, Aadhaar-related fraud).
 
 ### ☁️ Deployment Platforms
 
