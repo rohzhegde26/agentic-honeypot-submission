@@ -28,18 +28,30 @@ def clear_client_cache():
     logger.info("LLM client cache cleared")
 
 
-def get_openai_client(api_key: Optional[str] = None) -> OpenAI:
-    """Get or create a persistent OpenAI client instance for a specific key."""
+def get_openai_client(api_key: Optional[str] = None, model: Optional[str] = None) -> OpenAI:
+    """Get or create a persistent OpenAI client instance.
+    Selects Fireworks or NVIDIA backend based on model name."""
     settings = get_settings()
-    key = api_key or settings.NVIDIA_API_KEY_PRIMARY or settings.NVIDIA_API_KEY
     
-    if key not in _clients_cache:
-        _clients_cache[key] = OpenAI(
-            base_url=settings.NVIDIA_BASE_URL,
+    # Determine provider from model name
+    is_fireworks = model and "fireworks" in model.lower()
+    
+    if is_fireworks:
+        key = settings.FIREWORKS_API_KEY
+        base_url = settings.FIREWORKS_BASE_URL
+    else:
+        key = api_key or settings.NVIDIA_API_KEY_PRIMARY or settings.NVIDIA_API_KEY
+        base_url = settings.NVIDIA_BASE_URL
+    
+    cache_key = f"{base_url}:{key[:8]}" if key else base_url
+    
+    if cache_key not in _clients_cache:
+        _clients_cache[cache_key] = OpenAI(
+            base_url=base_url,
             api_key=key,
-            timeout=httpx.Timeout(25.0),  # Stay under 30s HuggingFace Spaces timeout
+            timeout=httpx.Timeout(25.0),
         )
-    return _clients_cache[key]
+    return _clients_cache[cache_key]
 
 
 # Model configuration - Routing based on settings
@@ -80,12 +92,15 @@ def _call_with_retry(
 
     for attempt in range(MAX_RETRIES + 1):
         try:
+            # Adjust parameters based on provider
+            is_fireworks = "fireworks" in model.lower()
+            
             completion = client.chat.completions.create(
                 model=model,
                 messages=messages,
-                temperature=0.6 if "kimi" not in model.lower() else 1.0, # Kimi often likes high temp
-                top_p=0.9 if "kimi" not in model.lower() else 1.0,
-                max_tokens=100,  # SMS replies should be very short - faster generation
+                temperature=0.6,
+                top_p=1.0 if is_fireworks else 0.9,
+                max_tokens=150 if is_fireworks else 100,
                 stream=False,
                 extra_body=extra_body if extra_body else None
             )
@@ -135,8 +150,8 @@ def call_llm(task: str, messages: List[Dict]) -> str:
     primary_model = config["primary"]
     fallback_model = config["fallback"]
     
-    # Try primary model with primary key
-    client_primary = get_openai_client(settings.NVIDIA_API_KEY_PRIMARY)
+    # Try primary model with appropriate client
+    client_primary = get_openai_client(settings.NVIDIA_API_KEY_PRIMARY, model=primary_model)
     result = _call_with_retry(client_primary, primary_model, messages, task=task)
     
     if result:
@@ -145,7 +160,7 @@ def call_llm(task: str, messages: List[Dict]) -> str:
     # Try fallback model with fallback key
     if fallback_model and fallback_model != primary_model:
         logger.info(f"Switching to fallback model: {fallback_model}")
-        client_fallback = get_openai_client(settings.NVIDIA_API_KEY_FALLBACK)
+        client_fallback = get_openai_client(settings.NVIDIA_API_KEY_FALLBACK, model=fallback_model)
         result = _call_with_retry(client_fallback, fallback_model, messages, task=task)
         
         if result:

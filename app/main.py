@@ -101,10 +101,7 @@ async def validation_exception_handler(request, exc: RequestValidationError):
 
 @app.get("/")
 async def root():
-    """Root endpoint with API info."""
-    return {
-        "service": "Agentic Honey-Pot API",
-        "version": "0.1.0",
-        "docs": "/docs",
-        "health": "/health",
-    }
+    """Root endpoint — serves interactive GUI dashboard."""
+    from fastapi.responses import HTMLResponse
+    from app.core.gui import GUI_HTML
+    return HTMLResponse(content=GUI_HTML)

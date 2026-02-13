@@ -38,9 +38,13 @@ class Settings(BaseSettings):
     NVIDIA_API_KEY: str = ""  # Legacy key
     NVIDIA_BASE_URL: str = "https://integrate.api.nvidia.com/v1"
     
-    # Model Configuration - Mistral as Primary for speed, Kimi as Fallback
-    MODEL_PRIMARY: str = "mistralai/mistral-large-3-675b-instruct-2512"
-    MODEL_FALLBACK: str = "moonshotai/kimi-k2.5"
+    # Fireworks AI
+    FIREWORKS_API_KEY: str = ""
+    FIREWORKS_BASE_URL: str = "https://api.fireworks.ai/inference/v1"
+    
+    # Model Configuration - Fireworks Kimi as Primary, Mistral as Fallback
+    MODEL_PRIMARY: str = "accounts/fireworks/models/kimi-k2p5"
+    MODEL_FALLBACK: str = "mistralai/mistral-large-3-675b-instruct-2512"
     
     # Debug Mode
     DEBUG: bool = False

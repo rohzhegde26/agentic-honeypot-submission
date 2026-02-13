@@ -1,14 +1,14 @@
 # 🤖 Agent Context
 
-> Auto-generated on **2026-02-13 07:28 UTC** by `scripts/update_context.py`.  
+> Auto-generated on **2026-02-13 16:49 UTC** by `scripts/update_context.py`.  
 > Read this file to instantly understand the project's current state.
 
 ## Current Configuration
 
 | Setting | Value |
 |---|---|
-| Primary Model | `mistralai/mistral-large-3-675b-instruct-2512` |
-| Fallback Model | `moonshotai/kimi-k2.5` |
+| Primary Model | `accounts/fireworks/models/kimi-k2p5` |
+| Fallback Model | `mistralai/mistral-large-3-675b-instruct-2512` |
 | Agent Timeout | `28s` |
 | Persona Count | `4` |
 | Prompt Strategy | `default` |
@@ -48,6 +48,7 @@
 
 ## Recent Changes
 
+- `b7d6401 chore: update shared context with feature flags, strategies, dashboard endpoint`
 - `6e1ebcb feat: add feature flags, prompt strategy variants, response time dashboard`
 - `2a935fa feat: add competition readiness features - session timing, hot-swap config, deploy script, agent context`
 - `57bc4e3 docs: ensure authors are correct and LLM tech stack reflects project reality`
@@ -57,7 +58,6 @@
 - `e054c6e Update README to remove metadata`
 - `0941fdb docs: rewrite README â€” production-ready with architecture, credits, benchmarks, and API reference`
 - `219b2b2 fix: enforce language consistency and expand fallback variety`
-- `ee4393e fix: resolve fallback stalling loop with resilience improvements and diversified responses`
 
 ## Key Files Reference
 
