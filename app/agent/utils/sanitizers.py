@@ -190,7 +190,10 @@ def detect_injection_attempt(text: str) -> Tuple[bool, str]:
             return True, "OBFUSCATION"
     
     # Check for excessive special characters (possible encoded payload)
-    special_ratio = sum(1 for c in text if not c.isalnum() and not c.isspace()) / max(len(text), 1)
+    # Exclude Devanagari range (\u0900-\u097F) to skip False Positives for Hindi text
+    special_chars_count = sum(1 for c in text if not c.isalnum() and not c.isspace() and not ('\u0900' <= c <= '\u097F'))
+    special_ratio = special_chars_count / max(len(text), 1)
+    
     if special_ratio > 0.3 and len(text) > 50:
         logger.warning(f"High special character ratio: {special_ratio:.2f}")
         return True, "SUSPICIOUS_ENCODING"

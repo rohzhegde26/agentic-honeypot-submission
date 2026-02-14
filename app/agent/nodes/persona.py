@@ -60,10 +60,6 @@ STRATEGY_MAP = {
     "defensive": {"hook": DEFENSIVE_HOOK, "stall": DEFENSIVE_STALL, "leak": DEFENSIVE_LEAK, "stall_chance": 40},
 }
 
-
-    return False
-
-
 def persona_node(state: AgentState) -> Dict[str, Any]:
     """
     Persona node: Generates reply as a realistic Indian persona.
