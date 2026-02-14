@@ -16,8 +16,12 @@ from app.core.rules import SAFE_FALLBACK_RESPONSE, SCRIPT_FALLBACK_RESPONSES
 logger = logging.getLogger(__name__)
 
 # Track script fallback index for cycling - Randomized start to avoid same starting message
+import re
 import random
 _script_fallback_index = random.randint(0, 100)
+
+# Regex to strip <think>...</think> blocks that some models embed in content
+_THINK_TAG_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
 
 # Persistent OpenAI client instances for each key
 _clients_cache: Dict[str, OpenAI] = {}
@@ -79,6 +83,19 @@ MAX_RETRIES = 1
 BACKOFF_SECONDS = [1, 2]
 
 
+def _strip_thinking_content(content: str) -> str:
+    """Remove <think>...</think> blocks that may leak into the response.
+    
+    Some Kimi model variants embed chain-of-thought reasoning inside
+    <think> tags in the content field instead of (or in addition to)
+    the separate reasoning_content field. This strips them out.
+    """
+    if not content:
+        return content
+    cleaned = _THINK_TAG_RE.sub("", content).strip()
+    return cleaned if cleaned else content  # never return empty
+
+
 def _call_with_retry(
     client: OpenAI,
     model: str,
@@ -87,41 +104,71 @@ def _call_with_retry(
 ) -> Optional[str]:
     """
     Call model with retry logic for errors.
-    Supports thinking mode for Kimi models if the task is 'persona'.
+    
+    Thinking mode (Kimi only, persona task):
+      - Enabled via extra_body chat_template_kwargs.
+      - Kimi thinking is binary (on/off) — no low/high modes exist.
+      - reasoning_content is checked first (separate field).
+      - <think>...</think> tags are stripped from content as safety net.
+      - max_tokens increased to 800 for Fireworks thinking to budget for overhead.
     """
     extra_body = {}
-    # Enabled thinking mode for Kimi to keep its reasoning separate from the content
+    is_thinking = False
+    # Enable thinking mode for Kimi persona task to keep reasoning separate
     if "kimi" in model.lower() and task == "persona":
         extra_body["chat_template_kwargs"] = {"thinking": True}
-        # Increase max tokens slightly to allow for character development
-        # But not too much to keep it short
-        # completion_params["max_tokens"] = 300 
+        is_thinking = True
 
     for attempt in range(MAX_RETRIES + 1):
         try:
             # Adjust parameters based on provider
             is_fireworks = "fireworks" in model.lower()
             
+            # Thinking needs a higher budget since reasoning consumes tokens
+            if is_fireworks:
+                max_tok = 800 if is_thinking else 400
+            else:
+                max_tok = 100
+            
             completion = client.chat.completions.create(
                 model=model,
                 messages=messages,
                 temperature=0.6,
                 top_p=1.0 if is_fireworks else 0.9,
-                max_tokens=400 if is_fireworks else 100,
+                max_tokens=max_tok,
                 stream=False,
                 extra_body=extra_body if extra_body else None
             )
             
             if completion.choices and completion.choices[0].message:
+                msg = completion.choices[0].message
+                
+                # --- Token usage logging ---
                 if completion.usage:
                     logger.info(f"LLM Usage ({model}): prompt={completion.usage.prompt_tokens}, completion={completion.usage.completion_tokens}, total={completion.usage.total_tokens}")
-                    # Log to local CSV tracker
                     log_token_usage(model, task, {
                         "prompt_tokens": completion.usage.prompt_tokens,
                         "completion_tokens": completion.usage.completion_tokens,
                         "total_tokens": completion.usage.total_tokens
                     })
-                return completion.choices[0].message.content
+                
+                # --- Thinking token handling ---
+                # 1. Check for reasoning_content field (Kimi/Moonshot API format)
+                reasoning = getattr(msg, "reasoning_content", None)
+                if reasoning:
+                    logger.info(f"THINKING [{model}] reasoning_content: {len(reasoning)} chars")
+                
+                # 2. Get the main content
+                content = msg.content or ""
+                
+                # 3. Strip any <think>...</think> tags that leaked into content
+                if is_thinking and content:
+                    stripped = _strip_thinking_content(content)
+                    if stripped != content:
+                        logger.info(f"THINKING [{model}] Stripped {len(content) - len(stripped)} chars of <think> tags from content")
+                        content = stripped
+                
+                return content if content else None
             
             return None
             
