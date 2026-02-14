@@ -142,22 +142,22 @@ If nothing found, return empty lists. JSON only, no explanation."""
 # Safe responses when LLM is completely unavailable
 # Cycle through these to maintain conversation flow
 SCRIPT_FALLBACK_RESPONSES: List[str] = [
-    "Sorry beta, my phone is acting up. One second...",
-    "Ek minute, the bank app is loading very slowly...",
+    "Sorry, my phone is acting up. One second...",
+    "One minute, the bank app is loading very slowly...",
     "Signal is weak here, I am trying to open the message again.",
-    "Beta I am looking for my glasses, please wait one minute.",
+    "I am looking for my glasses, please wait one minute.",
     "Sorry, my internet is not working properly. What were you saying?",
     "Sir I am confused, my screen becomes black suddenly.",
     "I am not understanding what to press here. One minute.",
     "The network is very bad today, I am trying to reply.",
-    "Beta, my neighbor is calling me, I will check and tell you in one minute.",
+    "I am on another call, I will check and tell you in one minute.",
     "Wait, I am getting another call on my phone. One second.",
     "Sir, the SMS is not coming in my phone. Is there any problem?",
     "I am trying to type but my hands are shaking, sorry sir.",
 ]
 
 # Response used when network/LLM issues occur (original fallback)
-SAFE_FALLBACK_RESPONSE: str = "Sorry beta, I think my internet is slow. Please tell me again what to do?"
+SAFE_FALLBACK_RESPONSE: str = "Sorry, I think my internet is slow. Please tell me again what to do?"
 
 
 # =============================================================================

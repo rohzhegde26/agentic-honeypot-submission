@@ -7,8 +7,8 @@ SECURITY: Implements OWASP 2025 LLM Top 10 defenses against prompt injection.
 """
 import logging
 import time
-from typing import Dict, Any, List
-import random
+import re
+from typing import Dict, Any
 from app.agent.utils.language import is_hindi
 
 from app.agent.state import AgentState
@@ -32,7 +32,8 @@ CRITICAL: Output ONLY {persona_name}'s direct dialogue. Do NOT explain yourself.
 Identity: Phone: {fake_phone}, UPI: {fake_upi}, Account: {fake_bank_account}, IFSC: {fake_ifsc}
 
 {phase_instruction}
-{language_instruction}"""
+{language_instruction}
+{topic_instruction}"""
 
 HOOK_INSTRUCTION = "You are currently curious and helpful. Ask how you can fix the problem. Be polite and stay in character."
 STALL_INSTRUCTION = "You are currently busy with something (e.g., looking for your glasses, papers, or the app is loading slowly). Mention this in a short text message. Do not repeat previous excuses."
@@ -43,7 +44,7 @@ AGGRESSIVE_HOOK = "You're currently worried and want to resolve this immediately
 AGGRESSIVE_LEAK = "You're currently cooperating actively. Share ONE fake detail per turn without being asked. Keep asking for their details too."
 
 DEFENSIVE_HOOK = "You're currently suspicious but polite. Ask them to prove they are from the bank. Ask for their employee ID."
-DEFENSIVE_STALL = "You currently need to check with your son/daughter first before sharing any details. Say you will message back after asking them."
+DEFENSIVE_STALL = "You are cautious and busy. Ask for 1-2 verification details first, then say you need a minute to verify from your bank passbook/app."
 DEFENSIVE_LEAK = "You are currently cautious. Ask at least 2 verification questions before sharing any detail. Question everything they say."
 
 STRATEGY_MAP = {
@@ -75,6 +76,14 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
     # If this specific message is in Hindi script, we answer in Hindi.
     # Otherwise, we stick to strict English.
     user_is_speaking_hindi = is_hindi(raw_message)
+    recent_user_text = " ".join(
+        str(m.get("text", ""))
+        for m in messages[-8:]
+        if str(m.get("sender", "")).lower() == "scammer"
+    )
+    context_text = f"{recent_user_text} {raw_message}".lower()
+    otp_context = any(k in context_text for k in ("otp", "one time password", "sms code", "verification code"))
+    family_context = any(k in context_text for k in ("family", "son", "daughter", "wife", "husband", "beta", "neighbor"))
 
     # Get persona details from state
     p_name = state.get("persona_name", "Ramesh Kumar")
@@ -164,13 +173,15 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
     if user_is_speaking_hindi:
         language_instruction = "LANGUAGE: Respond in Hindi (Devanagari script)."
     else:
-        # Default to English with Hinglish flavor as per guidelines
         language_instruction = (
-            "LANGUAGE: You MUST respond in English. "
-            "However, you can use very small amounts of Hinglish (e.g., calling others 'Sir', 'Ji', or using words like 'problem' mixed with Indian syntax) "
-            "to stay in character as an older Indian person. "
-            "NEVER respond fully in Hindi unless the user is speaking Hindi first."
+            "LANGUAGE: You MUST respond in English only (ASCII text). "
+            "Do not use Hindi words or Devanagari unless the scammer's current message is in Devanagari."
         )
+
+    topic_instruction = (
+        "TOPIC GUARDRAILS: Do not introduce OTP/SMS-code topics unless the scammer mentioned OTP/code first. "
+        "Do not introduce family members unless the scammer mentioned family first."
+    )
 
     # =========================================================================
     # LAYER 5: Build System Prompt with Canary
@@ -188,6 +199,7 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
         fake_ifsc=fake_ifsc,
         phase_instruction=phase_instruction,
         language_instruction=language_instruction,
+        topic_instruction=topic_instruction,
         canary_token=canary,
     )
     
@@ -222,6 +234,14 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
     # LAYER 8: Output Sanitization
     # =========================================================================
     reply = sanitize_output(raw_reply)
+
+    # Enforce language/topic guardrails even if model drifts.
+    if not user_is_speaking_hindi and is_hindi(reply):
+        reply = "Sir please explain in simple steps what you want me to do."
+    if not otp_context and re.search(r"\b(?:otp|one[\s-]?time[\s-]?password|sms code|verification code)\b", reply, flags=re.IGNORECASE):
+        reply = "Sir please tell your staff ID and department first, then explain the issue clearly."
+    if not family_context and re.search(r"\b(?:family|son|daughter|wife|husband|beta|neighbor)\b", reply, flags=re.IGNORECASE):
+        reply = "Sir I need your staff ID and official complaint number before I share any details."
     
     # =========================================================================
     # LAYER 9: Canary Leak Detection
