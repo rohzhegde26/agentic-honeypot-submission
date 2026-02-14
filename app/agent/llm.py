@@ -39,17 +39,20 @@ def get_openai_client(api_key: Optional[str] = None, model: Optional[str] = None
     if is_fireworks:
         key = settings.FIREWORKS_API_KEY
         base_url = settings.FIREWORKS_BASE_URL
+        # Reduce timeout for primary to 12s so fallback has room within 30s
+        timeout = 12.0
     else:
         key = api_key or settings.NVIDIA_API_KEY_PRIMARY or settings.NVIDIA_API_KEY
         base_url = settings.NVIDIA_BASE_URL
+        timeout = 25.0
     
     cache_key = f"{base_url}:{key[:8]}" if key else base_url
     
     if cache_key not in _clients_cache:
         _clients_cache[cache_key] = OpenAI(
             base_url=base_url,
-            api_key=key,
-            timeout=httpx.Timeout(25.0),
+            api_key=key or "missing-key", # Pass something to avoid OpenAI validation error if key is None
+            timeout=httpx.Timeout(timeout),
         )
     return _clients_cache[cache_key]
 
@@ -125,6 +128,10 @@ def _call_with_retry(
                     continue
                 return None
             
+            if "401" in error_str or "403" in error_str or "unauthorized" in error_str:
+                logger.error(f"Authentication error for model {model}: {e}. Skipping retries.")
+                return None
+
             logger.warning(f"Error calling model {model}: {e}")
             if attempt < MAX_RETRIES:
                 time.sleep(BACKOFF_SECONDS[attempt])
@@ -150,9 +157,13 @@ def call_llm(task: str, messages: List[Dict]) -> str:
     primary_model = config["primary"]
     fallback_model = config["fallback"]
     
-    # Try primary model with appropriate client
-    client_primary = get_openai_client(settings.NVIDIA_API_KEY_PRIMARY, model=primary_model)
-    result = _call_with_retry(client_primary, primary_model, messages, task=task)
+    # Try primary model ONLY if we have a key
+    if "fireworks" in primary_model.lower() and not settings.FIREWORKS_API_KEY:
+        logger.warning(f"Skipping primary model {primary_model} - missing FIREWORKS_API_KEY")
+        result = None
+    else:
+        client_primary = get_openai_client(settings.NVIDIA_API_KEY_PRIMARY, model=primary_model)
+        result = _call_with_retry(client_primary, primary_model, messages, task=task)
     
     if result:
         return result.strip()
