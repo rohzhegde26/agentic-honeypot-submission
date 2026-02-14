@@ -89,9 +89,12 @@ def _call_with_retry(
     Supports thinking mode for Kimi models if the task is 'persona'.
     """
     extra_body = {}
-    # Disabled thinking mode for all tasks to stay under 30s platform timeout
-    # if "kimi" in model.lower() and task == "persona":
-    #     extra_body["chat_template_kwargs"] = {"thinking": True}
+    # Enabled thinking mode for Kimi to keep its reasoning separate from the content
+    if "kimi" in model.lower() and task == "persona":
+        extra_body["chat_template_kwargs"] = {"thinking": True}
+        # Increase max tokens slightly to allow for character development
+        # But not too much to keep it short
+        # completion_params["max_tokens"] = 300 
 
     for attempt in range(MAX_RETRIES + 1):
         try:
@@ -109,6 +112,8 @@ def _call_with_retry(
             )
             
             if completion.choices and completion.choices[0].message:
+                if completion.usage:
+                    logger.info(f"LLM Usage ({model}): prompt={completion.usage.prompt_tokens}, completion={completion.usage.completion_tokens}, total={completion.usage.total_tokens}")
                 return completion.choices[0].message.content
             
             return None

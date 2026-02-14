@@ -225,8 +225,20 @@ def sanitize_input(text: str) -> str:
 
 def sanitize_output(text: str) -> str:
     """
-    Post-process LLM output to remove policy violations.
+    Post-process LLM output to remove policy violations and meta-commentaries.
     """
+    # Remove meta-commentaries often added by reasoning models
+    meta_patterns = [
+        r"the user is (?:asking|sending|trying).*",
+        r"i need to (?:respond|stay|be).*",
+        r"key characteristics.*",
+        r"i will (?:now|start).*",
+        r"analysis:.*",
+        r"reasoning:.*",
+    ]
+    for pattern in meta_patterns:
+        text = re.sub(pattern, "", text, flags=re.IGNORECASE | re.DOTALL)
+
     # Remove markdown formatting (persona shouldn't use it)
     text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # Bold
     text = re.sub(r'\*([^*]+)\*', r'\1', text)  # Italic
