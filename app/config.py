@@ -54,9 +54,13 @@ class Settings(BaseSettings):
     FLAG_STALLING: bool = True           # Enable random stalling behavior in persona
     FLAG_VERBOSE_LOGGING: bool = False   # Enable detailed per-node debug logs
     FLAG_THINKING: bool = True           # Enable thinking mode for Kimi models (disable for faster responses)
+    FLAG_GUARDRAIL: bool = False         # Enable Guardrail LLM check (NVIDIA NIM)
     
     # Prompt Strategy: "default", "aggressive", "defensive"
     PROMPT_STRATEGY: str = "default"
+    
+    # Guardrail Configuration
+    GUARDRAIL_MODEL: str = "ibm/granite-guardian-3.0-8b"
     
     # Session Configuration
     SESSION_TTL_SECONDS: int = 3600  # 1 hour as per requirements

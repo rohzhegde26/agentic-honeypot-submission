@@ -170,6 +170,31 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
         }
     
     # =========================================================================
+    # LAYER 2.5: Guardrail LLM Check (NVIDIA NIM)
+    # =========================================================================
+    from app.agent.llm import check_guardrail
+    guard_result = check_guardrail(message)
+    
+    if not guard_result["safe"]:
+        duration_ms = round((time.perf_counter() - t_start) * 1000, 1)
+        risk_label = guard_result["risk"]
+        
+        # Log latency
+        timing_entry = {
+            "node": "persona", 
+            "duration_ms": duration_ms, 
+            "guardrail_ms": guard_result["latency"],
+            "metadata": {"blocked": f"guardrail_{risk_label}"}
+        }
+        
+        return {
+            "agent_reply": "...",  # Silent block or generic error
+            "messages": [{"sender": "agent", "text": "..."}],
+            "agent_notes": f"BLOCKED: Guardrail detected risk ({risk_label})",
+            "timing_log": [timing_entry],
+        }
+        
+    # =========================================================================
     # LAYER 3: Generate Canary Token
     # =========================================================================
     canary = generate_canary()

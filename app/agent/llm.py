@@ -4,7 +4,7 @@ NVIDIA API calls using OpenAI SDK with retry logic and fallback handling.
 """
 import logging
 import time
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 
 from openai import OpenAI
 import httpx
@@ -248,3 +248,57 @@ def call_llm(task: str, messages: List[Dict]) -> str:
         return response
     
     return SAFE_FALLBACK_RESPONSE
+# =============================================================================
+# GUARDRAIL LLM
+# =============================================================================
+
+def get_nvidia_client():
+    from openai import OpenAI
+    settings = get_settings()
+    if not settings.NVIDIA_API_KEY_PRIMARY:
+        return None
+    return OpenAI(
+        base_url="https://integrate.api.nvidia.com/v1",
+        api_key=settings.NVIDIA_API_KEY_PRIMARY
+    )
+
+def check_guardrail(text: str) -> Dict[str, Any]:
+    """
+    Check input text against Guardrail LLM (NVIDIA NIM).
+    Returns {"safe": bool, "risk": str, "latency": float}
+    """
+    settings = get_settings()
+    if not settings.FLAG_GUARDRAIL:
+        return {"safe": True, "risk": "disabled", "latency": 0.0}
+    
+    t_start = time.perf_counter()
+    client = get_nvidia_client()
+    
+    if not client:
+        logger.warning("Guardrail enabled but NVIDIA_API_KEY_PRIMARY missing")
+        return {"safe": True, "risk": "missing_key", "latency": 0.0}
+
+    try:
+        # Granite Guardian 3.0 8B using extra_body for config
+        # "risk_name": "jailbreak" is the specific check we want
+        response = client.chat.completions.create(
+            model=settings.GUARDRAIL_MODEL,
+            messages=[{"role": "user", "content": text}],
+            extra_body={"guardian_config": {"risk_name": "jailbreak"}},
+            max_tokens=10,
+        )
+        
+        # Parse response - usually "Yes" (unsafe) or "No" (safe)
+        content = response.choices[0].message.content.strip().lower()
+        is_safe = "no" in content  # "No" means no risk found
+        
+        elapsed = round((time.perf_counter() - t_start) * 1000, 1)
+        
+        if not is_safe:
+            logger.warning(f"Guardrail BLOCKED input: {text[:50]}... (Reason: {content})")
+            
+        return {"safe": is_safe, "risk": content if not is_safe else "none", "latency": elapsed}
+        
+    except Exception as e:
+        logger.error(f"Guardrail check failed: {e}")
+        return {"safe": True, "risk": "error_bypass", "latency": 0.0}

@@ -262,6 +262,7 @@ class ConfigUpdate(BaseModel):
     flag_stalling: Optional[bool] = None
     flag_verbose_logging: Optional[bool] = None
     flag_thinking: Optional[bool] = None
+    flag_guardrail: Optional[bool] = None
     prompt_strategy: Optional[str] = None  # "default", "aggressive", "defensive"
 
 
@@ -295,6 +296,11 @@ async def admin_config_update(update: ConfigUpdate):
     if update.flag_thinking is not None:
         settings.FLAG_THINKING = update.flag_thinking
         changes["FLAG_THINKING"] = update.flag_thinking
+        
+    if update.flag_guardrail is not None:
+        settings.FLAG_GUARDRAIL = update.flag_guardrail
+        changes["FLAG_GUARDRAIL"] = update.flag_guardrail
+        
     if update.prompt_strategy is not None:
         if update.prompt_strategy in ("default", "aggressive", "defensive"):
             settings.PROMPT_STRATEGY = update.prompt_strategy

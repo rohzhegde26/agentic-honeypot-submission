@@ -277,8 +277,12 @@ tr:hover { background:var(--bg-primary); }
         <span class="toggle-label">🧠 Thinking Mode</span>
         <label class="toggle"><input type="checkbox" id="flagThinking" checked onchange="updateConfig()"><span class="toggle-slider"></span></label>
       </div>
+      <div class="toggle-row" style="margin-top:6px;padding-top:8px;border-top:1px solid var(--border)">
+        <span class="toggle-label">🛡️ NIM Guardrail</span>
+        <label class="toggle"><input type="checkbox" id="flagGuardrail" onchange="updateConfig()"><span class="toggle-slider"></span></label>
+      </div>
       <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:4px;line-height:1.4">
-        Kimi thinking separates reasoning from reply. Disable for faster but less nuanced responses.
+        IBM Granite Guardian 3.0 via NVIDIA NIM. Blocks jailbreaks/injections. Adds ~500ms latency.
       </div>
     </div>
 
@@ -408,6 +412,7 @@ function loadConfigState(cfg) {
   document.getElementById('flagStall').checked = cfg.FLAG_STALLING;
   document.getElementById('flagVerbose').checked = cfg.FLAG_VERBOSE_LOGGING;
   document.getElementById('flagThinking').checked = cfg.FLAG_THINKING !== false;
+  document.getElementById('flagGuardrail').checked = cfg.FLAG_GUARDRAIL;
   document.querySelector(`input[name="strategy"][value="${cfg.PROMPT_STRATEGY}"]`).checked = true;
   document.getElementById('modelSelect').value = cfg.MODEL_PRIMARY;
   document.getElementById('statStrategy').textContent = cfg.PROMPT_STRATEGY;
@@ -430,6 +435,7 @@ function updateConfig() {
     flag_stalling: document.getElementById('flagStall').checked,
     flag_verbose_logging: document.getElementById('flagVerbose').checked,
     flag_thinking: document.getElementById('flagThinking').checked,
+    flag_guardrail: document.getElementById('flagGuardrail').checked,
     prompt_strategy: strategy,
     model_primary: document.getElementById('modelSelect').value,
   };
