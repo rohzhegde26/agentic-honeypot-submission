@@ -107,7 +107,7 @@ def _call_with_retry(
                 messages=messages,
                 temperature=0.6,
                 top_p=1.0 if is_fireworks else 0.9,
-                max_tokens=150 if is_fireworks else 100,
+                max_tokens=400 if is_fireworks else 100,
                 stream=False,
                 extra_body=extra_body if extra_body else None
             )
