@@ -84,6 +84,13 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
     context_text = f"{recent_user_text} {raw_message}".lower()
     otp_context = any(k in context_text for k in ("otp", "one time password", "sms code", "verification code"))
     family_context = any(k in context_text for k in ("family", "son", "daughter", "wife", "husband", "beta", "neighbor"))
+    detail_request_match = re.search(
+        r"(share|send|tell|give|provide|confirm|enter)\s+.*\b(account|upi|ifsc|phone|number|otp|pin|cvv)\b|"
+        r"\b(account|upi|ifsc|phone|number|otp|pin|cvv)\b.*(share|send|tell|give|provide|confirm|enter)",
+        context_text,
+        flags=re.IGNORECASE,
+    )
+    explicit_detail_request = detail_request_match is not None
 
     # Get persona details from state
     p_name = state.get("persona_name", "Ramesh Kumar")
@@ -182,6 +189,8 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
         "TOPIC GUARDRAILS: Do not introduce OTP/SMS-code topics unless the scammer mentioned OTP/code first. "
         "Do not introduce family members unless the scammer mentioned family first."
     )
+    if turn_count <= 1:
+        topic_instruction += " FIRST-TURN RULE: Do not share any identity or financial details on this turn."
 
     # =========================================================================
     # LAYER 5: Build System Prompt with Canary
@@ -238,10 +247,35 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
     # Enforce language/topic guardrails even if model drifts.
     if not user_is_speaking_hindi and is_hindi(reply):
         reply = "Sir please explain in simple steps what you want me to do."
+    if not user_is_speaking_hindi and re.search(r"\b(?:namaste|kya|haan|aap|theek|kripya)\b", reply, flags=re.IGNORECASE):
+        reply = "Sir please explain in simple English what you want me to do."
     if not otp_context and re.search(r"\b(?:otp|one[\s-]?time[\s-]?password|sms code|verification code)\b", reply, flags=re.IGNORECASE):
         reply = "Sir please tell your staff ID and department first, then explain the issue clearly."
     if not family_context and re.search(r"\b(?:family|son|daughter|wife|husband|beta|neighbor)\b", reply, flags=re.IGNORECASE):
         reply = "Sir I need your staff ID and official complaint number before I share any details."
+    if not explicit_detail_request:
+        leaked_value = any(
+            val and val in reply
+            for val in (fake_phone, fake_upi, fake_bank_account, fake_ifsc)
+        )
+        leaked_pattern = re.search(
+            r"\b(?:account(?:\s*number)?|upi|ifsc|phone(?:\s*number)?)\b.{0,24}\b[A-Z0-9@_-]{6,}\b",
+            reply,
+            flags=re.IGNORECASE,
+        )
+        if leaked_value or leaked_pattern:
+            reply = "Sir please share your staff ID, department, and official callback number first."
+    if turn_count <= 1:
+        first_turn_leak = any(
+            val and val in reply
+            for val in (fake_phone, fake_upi, fake_bank_account, fake_ifsc)
+        ) or re.search(
+            r"\b(?:account(?:\s*number)?|upi|ifsc|phone(?:\s*number)?)\b.{0,24}\b[A-Z0-9@_-]{6,}\b",
+            reply,
+            flags=re.IGNORECASE,
+        )
+        if first_turn_leak:
+            reply = "Sir I am worried. Please tell your staff ID and what exactly the issue is."
     
     # =========================================================================
     # LAYER 9: Canary Leak Detection
