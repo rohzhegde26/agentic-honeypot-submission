@@ -9,6 +9,7 @@ import logging
 import time
 from typing import Dict, Any, List
 import random
+from app.agent.utils.language import is_hindi
 
 from app.agent.state import AgentState
 from app.agent.llm import call_llm
@@ -60,6 +61,9 @@ STRATEGY_MAP = {
 }
 
 
+    return False
+
+
 def persona_node(state: AgentState) -> Dict[str, Any]:
     """
     Persona node: Generates reply as a realistic Indian persona.
@@ -71,14 +75,23 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
     4. Sandwich defense (reinforce before/after user input)
     5. Output sanitization
     6. Canary leak detection
+    7. Dynamic language switching (English primary, Hindi on trigger)
     """
     raw_message = state["current_user_message"]
     t_start = time.perf_counter()
     llm_duration_ms = 0.0
     messages = state.get("messages", [])
     turn_count = state.get("turn_count", 1)
-    language_code = state.get("language", "en")
     
+    # Dynamic language detection
+    user_is_speaking_hindi = is_hindi(raw_message)
+    # Check history too: if they spoke Hindi before, we stay in Hindi
+    if not user_is_speaking_hindi and messages:
+        for m in messages[-3:]:
+             if m.get("sender") != "agent" and is_hindi(m.get("text", "")):
+                 user_is_speaking_hindi = True
+                 break
+
     # Get persona details from state
     p_name = state.get("persona_name", "Ramesh Kumar")
     p_age = state.get("persona_age", 67)
@@ -164,11 +177,16 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
     # =========================================================================
     # LAYER 4.5: Language Instruction
     # =========================================================================
-    if language_code == "hi":
-        language_instruction = "LANGUAGE: Use Hindi only."
+    if user_is_speaking_hindi:
+        language_instruction = "LANGUAGE: Respond in Hindi (Devanagari script)."
     else:
         # Default to English with Hinglish flavor as per guidelines
-        language_instruction = "LANGUAGE: Use English primarily. You can use occasional Hindi words (Hinglish), but do NOT respond fully in Hindi unless the user is speaking Hindi and you need to clarify."
+        language_instruction = (
+            "LANGUAGE: You MUST respond in English. "
+            "However, you can use very small amounts of Hinglish (e.g., calling others 'Sir', 'Ji', or using words like 'problem' mixed with Indian syntax) "
+            "to stay in character as an older Indian person. "
+            "NEVER respond fully in Hindi unless the user is speaking Hindi first."
+        )
 
     # =========================================================================
     # LAYER 5: Build System Prompt with Canary

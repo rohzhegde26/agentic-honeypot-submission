@@ -75,13 +75,23 @@ def output_node(state: AgentState) -> Dict[str, Any]:
     
     # If no reply was generated (safe path), provide a default
     if not agent_reply:
+         from app.agent.utils.language import is_hindi
          import random
-         fallbacks = [
-             "Hello, I think you have the wrong number. Who is this?",
-             "Sorry, I don't know you. Are you from the bank?",
-             "I think you messaged wrong number beta.",
-             "Who is this? I am confused."
-         ]
+         
+         if is_hindi(state["current_user_message"]):
+             fallbacks = [
+                 "हेलो, आप कौन बोल रहे हैं? शायद गलत नंबर है।",
+                 "जी, मैं आपको नहीं जानता। कौन है आप?",
+                 "शायद गलत नंबर लग गया है बेटा।",
+                 "कौन है? मैं समझ नहीं पा रहा हूं।"
+             ]
+         else:
+             fallbacks = [
+                 "Hello, I think you have the wrong number. Who is this?",
+                 "Sorry, I don't know you. Are you from the bank?",
+                 "I think you messaged wrong number beta.",
+                 "Who is this? I am confused."
+             ]
          agent_reply = random.choice(fallbacks)
     
     # Determine termination reason

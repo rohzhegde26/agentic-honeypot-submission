@@ -3,14 +3,14 @@ import json
 import time
 
 URL = "http://localhost:8000/webhook"
-API_KEY = "local-dev-secret-key" # Default in .env or config
+API_KEY = "honeypot-secret-key-2026" # Default in .env or config
 
-def start_session(session_id):
+def start_session(session_id, text="Hi, I am from SBI. Your account is blocked."):
     payload = {
         "sessionId": session_id,
         "message": {
             "sender": "scammer",
-            "text": "Hi, I am from SBI. Your account is blocked.",
+            "text": text,
             "timestamp": "2024-01-01T12:00:00Z"
         },
         "metadata": {"channel": "Testing"}
@@ -21,12 +21,17 @@ def start_session(session_id):
 
 def test_variations():
     print("Testing Persona Variations...")
-    personalities = []
+    
+    test_cases = [
+        {"text": "Hi, I am from SBI. Your account is blocked.", "lang": "English"},
+        {"text": "नमस्ते, मैं एसबीआई से हूं। आपका अकाउंट ब्लॉक हो गया है।", "lang": "Hindi (Devanagari)"},
+    ]
     initial_replies = []
     
-    for i in range(4):
-        session_id = f"verify-session-{i}-{int(time.time())}"
-        result = start_session(session_id)
+    for i, tc in enumerate(test_cases):
+        session_id = f"verify-lang-{i}-{int(time.time())}"
+        print(f"Testing {tc['lang']} message...")
+        result = start_session(session_id, text=tc["text"])
         reply = result.get("reply", "")
         initial_replies.append(reply)
         
