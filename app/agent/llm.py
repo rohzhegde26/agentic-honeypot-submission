@@ -114,17 +114,18 @@ def _call_with_retry(
     """
     extra_body = {}
     is_thinking = False
-    # Enable thinking mode for Kimi persona task IF thinking flag is on
+    # Enable thinking mode for any Fireworks model on persona task IF thinking flag is on
+    # (User confirmed all deployed models support this Fireworks feature)
     settings = get_settings()
-    if "kimi" in model.lower() and task == "persona" and settings.FLAG_THINKING:
+    is_fireworks = "fireworks" in model.lower() or "accounts/fireworks" in model.lower()
+    
+    if is_fireworks and task == "persona" and settings.FLAG_THINKING:
         extra_body["chat_template_kwargs"] = {"thinking": True}
         is_thinking = True
 
     for attempt in range(MAX_RETRIES + 1):
         try:
             # Adjust parameters based on provider
-            is_fireworks = "fireworks" in model.lower()
-            
             # Thinking needs a higher budget since reasoning consumes tokens
             if is_fireworks:
                 max_tok = 800 if is_thinking else 400

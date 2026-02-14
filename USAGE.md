@@ -12,7 +12,7 @@ Access the control panel at `http://localhost:8000/`.
 
 ## 🧠 Thinking Mode (New!)
 **What it does:**  
-Contols whether the AI "thinks" before speaking.
+Controls whether the AI "thinks" before speaking (supports **ALL Fireworks models** like Kimi, DeepSeek, GLM).
 - **ON (Default):** Uses Chain-of-Thought (CoT) reasoning. Result: **More realistic, in-character responses.**
 - **OFF:** Direct response. Result: **Faster speed, but less nuance.**
 
