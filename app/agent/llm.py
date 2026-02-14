@@ -8,6 +8,7 @@ from typing import List, Dict, Optional
 
 from openai import OpenAI
 import httpx
+from app.agent.utils.usage import log_token_usage
 
 from app.config import get_settings
 from app.core.rules import SAFE_FALLBACK_RESPONSE, SCRIPT_FALLBACK_RESPONSES
@@ -114,6 +115,12 @@ def _call_with_retry(
             if completion.choices and completion.choices[0].message:
                 if completion.usage:
                     logger.info(f"LLM Usage ({model}): prompt={completion.usage.prompt_tokens}, completion={completion.usage.completion_tokens}, total={completion.usage.total_tokens}")
+                    # Log to local CSV tracker
+                    log_token_usage(model, task, {
+                        "prompt_tokens": completion.usage.prompt_tokens,
+                        "completion_tokens": completion.usage.completion_tokens,
+                        "total_tokens": completion.usage.total_tokens
+                    })
                 return completion.choices[0].message.content
             
             return None

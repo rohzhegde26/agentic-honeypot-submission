@@ -41,3 +41,6 @@ htmlcov/
 
 # Logs
 *.log
+
+# Data (Token usage logs)
+data/
