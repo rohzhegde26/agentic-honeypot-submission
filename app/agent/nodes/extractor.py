@@ -70,6 +70,30 @@ def _extract_staff_ids(text: str) -> List[str]:
     return [m.strip() for m in STAFF_ID_PATTERN.findall(text)]
 
 
+def _extract_ifsc_codes(text: str) -> List[str]:
+    """Extract IFSC codes (bank branch identifiers) using regex."""
+    from app.core.rules import IFSC_PATTERN
+    return IFSC_PATTERN.findall(text)
+
+
+def _extract_pan_numbers(text: str) -> List[str]:
+    """Extract PAN numbers (tax IDs) using regex."""
+    from app.core.rules import PAN_PATTERN
+    return PAN_PATTERN.findall(text)
+
+
+def _extract_sebi_handles(text: str) -> List[str]:
+    """Extract SEBI @valid handles (investment scam identifiers) using regex."""
+    from app.core.rules import SEBI_HANDLE_PATTERN
+    return SEBI_HANDLE_PATTERN.findall(text)
+
+
+def _normalize_spaced_digits(text: str) -> str:
+    """Normalize spaced digits: '9 8 7 6 5 4 3 2 1 0' → '9876543210'."""
+    # Collapse single-digit sequences separated by spaces
+    return re.sub(r'(\d)\s+(?=\d)', r'\1', text)
+
+
 def _extract_suspicious_keywords(text: str) -> List[str]:
     """Extract suspicious keywords found in the text."""
     text_lower = text.lower()
@@ -135,13 +159,24 @@ def extractor_node(state: AgentState) -> Dict[str, Any]:
     message = state["current_user_message"]
     messages = state.get("messages", [])
     
-    # Step 1: Regex extraction (deterministic)
-    regex_upi = _extract_upi_ids(message)
-    regex_phones = _extract_phone_numbers(message)
-    regex_links = _extract_links(message)
-    regex_accounts = _extract_bank_accounts(message)
-    regex_staff = _extract_staff_ids(message)
-    regex_keywords = _extract_suspicious_keywords(message)
+    # =========================================================================
+    # PREPROCESSING: Normalize spaced digits
+    # =========================================================================
+    # Collapse spaced digits like "9 8 7 6 5 4 3 2 1 0" → "9876543210"
+    message_normalized = _normalize_spaced_digits(message)
+    
+    # Step 1: Regex extraction (deterministic) - use normalized message
+    regex_upi = _extract_upi_ids(message_normalized)
+    regex_phones = _extract_phone_numbers(message_normalized)
+    regex_links = _extract_links(message_normalized)
+    regex_accounts = _extract_bank_accounts(message_normalized)
+    regex_staff = _extract_staff_ids(message_normalized)
+    regex_keywords = _extract_suspicious_keywords(message_normalized)
+    
+    # New extractions: IFSC, PAN, SEBI handles
+    regex_ifsc = _extract_ifsc_codes(message_normalized)
+    regex_pan = _extract_pan_numbers(message_normalized)
+    regex_sebi = _extract_sebi_handles(message_normalized)
     
     # Step 2: LLM reinforcement
     llm_upi = []
@@ -202,6 +237,9 @@ def extractor_node(state: AgentState) -> Dict[str, Any]:
     # Qualitative extractions (names/ids) to be added to notes
     found_names = list(set(llm_names))
     found_staff = list(set(regex_staff) | set(llm_staff))
+    found_ifsc = list(set(regex_ifsc))
+    found_pan = list(set(regex_pan))
+    found_sebi = list(set(regex_sebi))
     
     # Step 4: Merge with existing intelligence (never overwrite)
     existing = state.get("extracted_intelligence", {})
@@ -211,6 +249,11 @@ def extractor_node(state: AgentState) -> Dict[str, Any]:
         "phishingLinks": list(set(existing.get("phishingLinks", [])) | set(all_links)),
         "bankAccounts": list(set(existing.get("bankAccounts", [])) | set(all_accounts)),
         "suspiciousKeywords": list(set(existing.get("suspiciousKeywords", [])) | set(all_keywords)),
+        "scammerNames": list(set(existing.get("scammerNames", [])) | set(found_names)),
+        "staffIds": list(set(existing.get("staffIds", [])) | set(found_staff)),
+        "ifscCodes": list(set(existing.get("ifscCodes", [])) | set(found_ifsc)),
+        "panNumbers": list(set(existing.get("panNumbers", [])) | set(found_pan)),
+        "sebiHandles": list(set(existing.get("sebiHandles", [])) | set(found_sebi)),
     }
     
     # Step 5: Update Agent Notes with qualitative data

@@ -117,6 +117,15 @@ BANK_ACCOUNT_PATTERN: Pattern = re.compile(r'\b\d{9,18}\b')
 # Staff ID pattern (common in Indian scams: Staff ID: 1234 or I m Staff Name ID: 1234)
 STAFF_ID_PATTERN: Pattern = re.compile(r'(?:staff\s*id|employee\s*id|id\s*no)[\s:]*([A-Z0-9-]{3,10})', re.IGNORECASE)
 
+# IFSC Code pattern (4 uppercase + 0 + 6 alphanumeric) - Bank branch identifier
+IFSC_PATTERN: Pattern = re.compile(r'\b[A-Z]{4}0[A-Z0-9]{6}\b')
+
+# PAN number pattern (5 uppercase + 4 digits + 1 uppercase) - Tax ID
+PAN_PATTERN: Pattern = re.compile(r'\b[A-Z]{5}\d{4}[A-Z]\b')
+
+# SEBI @valid handle pattern (investment/broker scam identifiers)
+SEBI_HANDLE_PATTERN: Pattern = re.compile(r'@valid[a-zA-Z0-9_-]+|@[a-zA-Z0-9_-]+(?:broker|invest|trade|fund)', re.IGNORECASE)
+
 
 # =============================================================================
 # LLM PROMPTS
