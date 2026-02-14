@@ -79,14 +79,10 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
     messages = state.get("messages", [])
     turn_count = state.get("turn_count", 1)
     
-    # Dynamic language detection
+    # Dynamic language detection: Follow the scammer's lead turn-by-turn.
+    # If this specific message is in Hindi script, we answer in Hindi.
+    # Otherwise, we stick to strict English.
     user_is_speaking_hindi = is_hindi(raw_message)
-    # Check history too: if they spoke Hindi before, we stay in Hindi
-    if not user_is_speaking_hindi and messages:
-        for m in messages[-3:]:
-             if m.get("sender") != "agent" and is_hindi(m.get("text", "")):
-                 user_is_speaking_hindi = True
-                 break
 
     # Get persona details from state
     p_name = state.get("persona_name", "Ramesh Kumar")

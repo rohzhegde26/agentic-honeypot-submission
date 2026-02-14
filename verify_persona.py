@@ -25,14 +25,20 @@ def test_variations():
     test_cases = [
         {"text": "Hi, I am from SBI. Your account is blocked.", "lang": "English"},
         {"text": "नमस्ते, मैं एसबीआई से हूं। आपका अकाउंट ब्लॉक हो गया है।", "lang": "Hindi (Devanagari)"},
+        {"text": "We need your OTP now to unblock it.", "lang": "English (Switch back)"},
     ]
     initial_replies = []
     
+    session_id = f"verify-lang-multiturn-{int(time.time())}"
     for i, tc in enumerate(test_cases):
-        session_id = f"verify-lang-{i}-{int(time.time())}"
-        print(f"Testing {tc['lang']} message...")
+        print(f"Testing Turn {i+1}: {tc['lang']} message...")
         result = start_session(session_id, text=tc["text"])
         reply = result.get("reply", "")
+        # Print safely for Windows terminal
+        try:
+            print(f"Agent Reply: {reply}")
+        except UnicodeEncodeError:
+            print(f"Agent Reply (Contains Unicode): {reply.encode('ascii', 'ignore').decode('ascii')}...")
         initial_replies.append(reply)
         
         print(f"Session {i} Reply: {reply}")
