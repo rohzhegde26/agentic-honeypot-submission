@@ -273,6 +273,13 @@ tr:hover { background:var(--bg-primary); }
         <span class="toggle-label">Verbose Logging</span>
         <label class="toggle"><input type="checkbox" id="flagVerbose" onchange="updateConfig()"><span class="toggle-slider"></span></label>
       </div>
+      <div class="toggle-row" style="margin-top:6px;padding-top:8px;border-top:1px solid var(--border)">
+        <span class="toggle-label">🧠 Thinking Mode</span>
+        <label class="toggle"><input type="checkbox" id="flagThinking" checked onchange="updateConfig()"><span class="toggle-slider"></span></label>
+      </div>
+      <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:4px;line-height:1.4">
+        Kimi thinking separates reasoning from reply. Disable for faster but less nuanced responses.
+      </div>
     </div>
 
     <!-- Prompt Strategy -->
@@ -298,9 +305,21 @@ tr:hover { background:var(--bg-primary); }
     <div class="panel-section" id="modelSection">
       <h3>🤖 Model Config</h3>
       <select class="model-select" id="modelSelect" onchange="updateConfig()">
-        <option value="accounts/fireworks/models/kimi-k2p5">Fireworks Kimi K2.5</option>
-        <option value="mistralai/mistral-large-3-675b-instruct-2512">Mistral Large 3</option>
-        <option value="moonshotai/kimi-k2.5">NVIDIA Kimi K2.5</option>
+        <optgroup label="⭐ Top Tier">
+          <option value="accounts/fireworks/models/kimi-k2p5">Kimi K2.5 — $0.60/$3.00</option>
+          <option value="accounts/fireworks/models/glm-5">GLM-5 — $1.00/$3.20</option>
+          <option value="accounts/fireworks/models/glm-4p7">GLM-4.7 — $0.60/$2.20</option>
+          <option value="accounts/fireworks/models/deepseek-v3p2">DeepSeek V3.2 — $0.56/$1.68</option>
+        </optgroup>
+        <optgroup label="💎 Value Picks">
+          <option value="accounts/fireworks/models/minimax-m2p1">MiniMax M2.1 — $0.30/$1.20</option>
+          <option value="accounts/fireworks/models/minimax-m2">MiniMax M2 — $0.30/$1.20</option>
+          <option value="accounts/fireworks/models/qwen3-235b-a22b">Qwen3 235B — $0.22/$0.88</option>
+          <option value="accounts/fireworks/models/gpt-oss-120b">GPT-OSS 120B — $0.15/$0.60</option>
+        </optgroup>
+        <optgroup label="🔬 Reasoning">
+          <option value="accounts/fireworks/models/kimi-k2-thinking">Kimi K2 Thinking — $0.60/$2.50</option>
+        </optgroup>
       </select>
       <div style="margin-top:8px;font-size:0.7rem;color:var(--text-secondary)">
         Primary model for persona & extraction
@@ -388,6 +407,7 @@ function loadConfigState(cfg) {
   document.getElementById('flagLlm').checked = cfg.FLAG_LLM_EXTRACTION;
   document.getElementById('flagStall').checked = cfg.FLAG_STALLING;
   document.getElementById('flagVerbose').checked = cfg.FLAG_VERBOSE_LOGGING;
+  document.getElementById('flagThinking').checked = cfg.FLAG_THINKING !== false;
   document.querySelector(`input[name="strategy"][value="${cfg.PROMPT_STRATEGY}"]`).checked = true;
   document.getElementById('modelSelect').value = cfg.MODEL_PRIMARY;
   document.getElementById('statStrategy').textContent = cfg.PROMPT_STRATEGY;
@@ -409,6 +429,7 @@ function updateConfig() {
     flag_llm_extraction: document.getElementById('flagLlm').checked,
     flag_stalling: document.getElementById('flagStall').checked,
     flag_verbose_logging: document.getElementById('flagVerbose').checked,
+    flag_thinking: document.getElementById('flagThinking').checked,
     prompt_strategy: strategy,
     model_primary: document.getElementById('modelSelect').value,
   };

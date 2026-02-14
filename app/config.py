@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     FLAG_LLM_EXTRACTION: bool = True    # Enable LLM-reinforced extraction (disable to save latency)
     FLAG_STALLING: bool = True           # Enable random stalling behavior in persona
     FLAG_VERBOSE_LOGGING: bool = False   # Enable detailed per-node debug logs
+    FLAG_THINKING: bool = True           # Enable thinking mode for Kimi models (disable for faster responses)
     
     # Prompt Strategy: "default", "aggressive", "defensive"
     PROMPT_STRATEGY: str = "default"

@@ -261,6 +261,7 @@ class ConfigUpdate(BaseModel):
     flag_llm_extraction: Optional[bool] = None
     flag_stalling: Optional[bool] = None
     flag_verbose_logging: Optional[bool] = None
+    flag_thinking: Optional[bool] = None
     prompt_strategy: Optional[str] = None  # "default", "aggressive", "defensive"
 
 
@@ -291,6 +292,9 @@ async def admin_config_update(update: ConfigUpdate):
     if update.flag_verbose_logging is not None:
         settings.FLAG_VERBOSE_LOGGING = update.flag_verbose_logging
         changes["FLAG_VERBOSE_LOGGING"] = update.flag_verbose_logging
+    if update.flag_thinking is not None:
+        settings.FLAG_THINKING = update.flag_thinking
+        changes["FLAG_THINKING"] = update.flag_thinking
     if update.prompt_strategy is not None:
         if update.prompt_strategy in ("default", "aggressive", "defensive"):
             settings.PROMPT_STRATEGY = update.prompt_strategy
@@ -317,6 +321,7 @@ async def admin_config_view():
         "FLAG_LLM_EXTRACTION": settings.FLAG_LLM_EXTRACTION,
         "FLAG_STALLING": settings.FLAG_STALLING,
         "FLAG_VERBOSE_LOGGING": settings.FLAG_VERBOSE_LOGGING,
+        "FLAG_THINKING": settings.FLAG_THINKING,
         "PROMPT_STRATEGY": settings.PROMPT_STRATEGY,
     }
 

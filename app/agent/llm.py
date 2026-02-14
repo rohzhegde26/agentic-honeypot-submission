@@ -114,8 +114,9 @@ def _call_with_retry(
     """
     extra_body = {}
     is_thinking = False
-    # Enable thinking mode for Kimi persona task to keep reasoning separate
-    if "kimi" in model.lower() and task == "persona":
+    # Enable thinking mode for Kimi persona task IF thinking flag is on
+    settings = get_settings()
+    if "kimi" in model.lower() and task == "persona" and settings.FLAG_THINKING:
         extra_body["chat_template_kwargs"] = {"thinking": True}
         is_thinking = True
 
