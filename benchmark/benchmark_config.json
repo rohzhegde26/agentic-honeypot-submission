@@ -1,52 +1,49 @@
 {
     "contestants": [
         {
-            "name": "Qwen 3 (235B)",
-            "model": "qwen/qwen3-235b-a22b",
-            "api_key": "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",
-            "base_url": "https://integrate.api.nvidia.com/v1"
+            "name": "Kimi K2.5",
+            "model": "accounts/fireworks/models/kimi-k2.5",
+            "base_url": "https://api.fireworks.ai/inference/v1"
         },
         {
-            "name": "Kimi k2.5",
-            "model": "moonshotai/kimi-k2.5",
-            "api_key": "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",
-            "base_url": "https://integrate.api.nvidia.com/v1"
+            "name": "GLM-5",
+            "model": "accounts/fireworks/models/glm-5-chat",
+            "base_url": "https://api.fireworks.ai/inference/v1"
         },
         {
             "name": "GLM-4.7",
-            "model": "z-ai/glm4.7",
-            "api_key": "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",
-            "base_url": "https://integrate.api.nvidia.com/v1"
+            "model": "accounts/fireworks/models/glm-4.7-chat",
+            "base_url": "https://api.fireworks.ai/inference/v1"
         },
         {
-            "name": "Step-3.5 Flash",
-            "model": "stepfun-ai/step-3.5-flash",
-            "api_key": "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",
-            "base_url": "https://integrate.api.nvidia.com/v1"
+            "name": "DeepSeek V3.2",
+            "model": "accounts/fireworks/models/deepseek-v3.2",
+            "base_url": "https://api.fireworks.ai/inference/v1"
         },
         {
-            "name": "Minimax M2.1",
-            "model": "minimaxai/minimax-m2.1",
-            "api_key": "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",
-            "base_url": "https://integrate.api.nvidia.com/v1"
+            "name": "MiniMax M2.1",
+            "model": "accounts/fireworks/models/minimax-m2.1",
+            "base_url": "https://api.fireworks.ai/inference/v1"
         },
         {
-            "name": "Mistral Large 3",
-            "model": "mistralai/mistral-large-3-675b-instruct-2512",
-            "api_key": "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",
-            "base_url": "https://integrate.api.nvidia.com/v1"
+            "name": "MiniMax M2",
+            "model": "accounts/fireworks/models/minimax-m2",
+            "base_url": "https://api.fireworks.ai/inference/v1"
         },
         {
-            "name": "Qwen 3 Next (80B Thinking)",
-            "model": "qwen/qwen3-next-80b-a3b-thinking",
-            "api_key": "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",
-            "base_url": "https://integrate.api.nvidia.com/v1"
+            "name": "Qwen3 235B",
+            "model": "accounts/fireworks/models/qwen3-235b-instruct",
+            "base_url": "https://api.fireworks.ai/inference/v1"
         },
         {
             "name": "GPT-OSS 120B",
-            "model": "openai/gpt-oss-120b",
-            "api_key": "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",
-            "base_url": "https://integrate.api.nvidia.com/v1"
+            "model": "accounts/fireworks/models/gpt-oss-120b",
+            "base_url": "https://api.fireworks.ai/inference/v1"
+        },
+        {
+            "name": "Kimi K2 Thinking",
+            "model": "accounts/fireworks/models/kimi-k2-thinking",
+            "base_url": "https://api.fireworks.ai/inference/v1"
         }
     ],
     "scenarios": [

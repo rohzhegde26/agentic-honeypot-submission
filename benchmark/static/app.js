@@ -1,241 +1,261 @@
-// app.js - Local Benchmark Arena UI Logic
+// app.js - Multi-User Benchmark Arena
 
 // State
-let numVoters = 2;
+let sessionToken = localStorage.getItem('benchmark_token');
 let currentTurn = -1;
-let responses = [];
-let voterVotes = {}; // {voterID: alias}
+let myVote = null;
+let lastStatus = null;
 
-// DOM Elements
-const setupScreen = document.getElementById('setup-screen');
-const arenaScreen = document.getElementById('arena-screen');
-const resultsScreen = document.getElementById('results-screen');
-const voterCountInput = document.getElementById('voter-count');
-const startBtn = document.getElementById('start-btn');
-const messageInput = document.getElementById('message-input');
-const sendBtn = document.getElementById('send-btn');
-const responsesGrid = document.getElementById('responses-grid');
-const voterPanels = document.getElementById('voter-panels');
-const turnNum = document.getElementById('turn-num');
-const voteStatus = document.getElementById('vote-status');
-const nextBtn = document.getElementById('next-btn');
-const finishBtn = document.getElementById('finish-btn');
-const resultsContent = document.getElementById('results-content');
-const restartBtn = document.getElementById('restart-btn');
+// DOM
+const screens = {
+    login: document.getElementById('login-screen'),
+    lobby: document.getElementById('lobby-screen'),
+    arena: document.getElementById('arena-screen'),
+    results: document.getElementById('results-screen')
+};
 
-// Screen Switching
-function showScreen(screen) {
-    [setupScreen, arenaScreen, resultsScreen].forEach(s => s.classList.remove('active'));
-    screen.classList.add('active');
+// --- Init ---
+if (sessionToken) {
+    pollState();
+} else {
+    showScreen('login');
 }
 
-// Setup
-startBtn.addEventListener('click', async () => {
-    numVoters = parseInt(voterCountInput.value) || 2;
+// --- Login ---
+document.getElementById('join-btn').addEventListener('click', async () => {
+    const apiKey = document.getElementById('api-key').value.trim();
+    const nickname = document.getElementById('nickname').value.trim();
 
-    const res = await fetch('/api/setup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ num_voters: numVoters })
-    });
-
-    const data = await res.json();
-
-    if (data.num_contestants === 0) {
-        alert('No contestants configured! Please edit benchmark/benchmark_config.json');
-        return;
-    }
-
-    currentTurn = 0;
-    turnNum.textContent = '1';
-    showScreen(arenaScreen);
-    renderVoterPanels();
-});
-
-// Render Voter Panels
-function renderVoterPanels() {
-    voterPanels.innerHTML = '';
-    voterVotes = {};
-
-    for (let i = 1; i <= numVoters; i++) {
-        const panel = document.createElement('div');
-        panel.className = 'voter-panel';
-        panel.id = `voter-${i}`;
-        panel.innerHTML = `
-            <h4>Voter ${i}</h4>
-            <div class="vote-buttons" id="vote-buttons-${i}">
-                <p style="color: var(--text-secondary); font-size: 0.9rem;">Waiting for responses...</p>
-            </div>
-        `;
-        voterPanels.appendChild(panel);
-    }
-}
-
-// Send Message
-sendBtn.addEventListener('click', sendMessage);
-messageInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') sendMessage();
-});
-
-async function sendMessage() {
-    const message = messageInput.value.trim();
-    if (!message) return;
-
-    // Show loading
-    sendBtn.disabled = true;
-    sendBtn.textContent = 'Generating...';
-    responsesGrid.innerHTML = '<p style="text-align:center; color: var(--text-secondary);">Agents are thinking...</p>';
+    if (!apiKey || !nickname) return alert("Please enter API Key and Nickname");
 
     try {
-        const res = await fetch('/api/send', {
+        const res = await fetch('/api/join', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message })
+            body: JSON.stringify({ api_key: apiKey, nickname })
         });
 
+        if (!res.ok) throw new Error("Invalid API Key");
+
         const data = await res.json();
-        responses = data.responses;
-        currentTurn = data.turn;
-        turnNum.textContent = currentTurn + 1;
+        sessionToken = data.token;
+        localStorage.setItem('benchmark_token', sessionToken);
 
-        // Render responses
-        renderResponses();
-
-        // Update voter panels with vote buttons
-        updateVoterButtons();
-
-        // Reset vote state
-        voterVotes = {};
-        updateVoteStatus();
-
-        // Reset next button
-        nextBtn.disabled = true;
+        pollState(); // Start polling
 
     } catch (e) {
-        alert('Error: ' + e.message);
+        alert(e.message);
     }
+});
 
-    sendBtn.disabled = false;
-    sendBtn.textContent = 'Send';
-    messageInput.value = '';
-}
-
-// Render Responses
-function renderResponses() {
-    responsesGrid.innerHTML = '';
-
-    responses.forEach(resp => {
-        const card = document.createElement('div');
-        card.className = 'response-card';
-        card.innerHTML = `
-            <h3>${resp.alias}</h3>
-            <p>${escapeHtml(resp.reply)}</p>
-        `;
-        responsesGrid.appendChild(card);
-    });
-}
-
-// Update Voter Buttons
-function updateVoterButtons() {
-    for (let i = 1; i <= numVoters; i++) {
-        const container = document.getElementById(`vote-buttons-${i}`);
-        container.innerHTML = '';
-
-        responses.forEach(resp => {
-            const btn = document.createElement('button');
-            btn.className = 'vote-btn';
-            btn.textContent = resp.alias;
-            btn.onclick = () => castVote(i, resp.alias, btn);
-            container.appendChild(btn);
-        });
-    }
-}
-
-// Cast Vote
-async function castVote(voterId, alias, btnElement) {
-    // Disable all buttons for this voter
-    const container = document.getElementById(`vote-buttons-${voterId}`);
-    container.querySelectorAll('.vote-btn').forEach(b => b.disabled = true);
-    btnElement.classList.add('selected');
-
+// --- Polling Loop ---
+async function pollState() {
     try {
-        const res = await fetch('/api/vote', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ voter_id: voterId, agent_alias: alias })
+        const res = await fetch('/api/poll', {
+            headers: { 'token': sessionToken }
         });
 
-        const data = await res.json();
-        voterVotes[voterId] = alias;
-
-        updateVoteStatus();
-
-        if (data.all_voted) {
-            nextBtn.disabled = false;
-            voteStatus.textContent = 'All voted! Ready for next turn.';
-            voteStatus.style.background = 'var(--success)';
-            voteStatus.style.color = '#000';
+        if (res.status === 401) {
+            localStorage.removeItem('benchmark_token');
+            sessionToken = null;
+            showScreen('login');
+            return;
         }
 
+        const state = await res.json();
+        renderState(state);
+
+        // Loop
+        setTimeout(pollState, 1000);
+
     } catch (e) {
-        console.error(e);
+        console.error("Poll error", e);
+        setTimeout(pollState, 2000);
     }
 }
 
-// Update Vote Status
-function updateVoteStatus() {
-    const count = Object.keys(voterVotes).length;
-    voteStatus.textContent = `${count}/${numVoters} votes`;
-    voteStatus.style.background = 'var(--accent-primary)';
-    voteStatus.style.color = 'white';
+// --- Render ---
+function renderState(state) {
+    // Status Badge
+    const badge = document.getElementById('status-badge');
+    if (badge) badge.textContent = state.status.toUpperCase();
+
+    // Voters List
+    const votersList = document.getElementById('voters-list');
+    if (votersList) votersList.innerHTML = state.voters_names.map(n => `<li>${n}</li>`).join('');
+
+    // Metrics
+    const voterCount = document.getElementById('voter-count');
+    if (voterCount) voterCount.textContent = `${state.voters_count} Voters`;
+
+    const turnNum = document.getElementById('turn-num');
+    if (turnNum) turnNum.textContent = state.turn + 1;
+
+    // Screen Logic
+    if (state.status === 'waiting') {
+        showScreen('lobby');
+    } else if (state.status === 'thinking' || state.status === 'voting') {
+        showScreen('arena');
+        renderArena(state);
+    } else if (state.status === 'results') {
+        showScreen('results');
+        renderResults(state);
+    }
 }
 
-// Next Turn
-nextBtn.addEventListener('click', () => {
-    // Reset for next turn
-    responsesGrid.innerHTML = '<p style="text-align:center; color: var(--text-secondary);">Send a message to start the next turn.</p>';
-    renderVoterPanels();
-    nextBtn.disabled = true;
-    voteStatus.textContent = 'Waiting for message...';
-});
+function renderArena(state) {
+    const grid = document.getElementById('responses-grid');
+    const inputSec = document.getElementById('input-section');
+    const votingSec = document.getElementById('voting-section');
 
-// Finish
-finishBtn.addEventListener('click', async () => {
-    const res = await fetch('/api/results');
-    const data = await res.json();
+    if (state.status === 'thinking') {
+        inputSec.style.opacity = '0.5';
+        grid.innerHTML = '<div class="spinner"></div><p style="text-align:center">Models are generating...</p>';
+        votingSec.style.display = 'none';
+    } else {
+        inputSec.style.opacity = '1';
 
-    // Render results
-    resultsContent.innerHTML = `
-        <p style="text-align:center; margin-bottom: 1.5rem;">
-            ${data.total_turns} turns • ${data.total_votes} total votes
-        </p>
-    `;
+        if (state.responses && state.responses.length > 0) {
+            grid.innerHTML = state.responses.map(r => `
+                <div class="response-card">
+                    <h3>${r.alias}</h3>
+                    <p>${escapeHtml(r.reply)}</p>
+                </div>
+            `).join('');
 
-    data.results.forEach((r, i) => {
-        const row = document.createElement('div');
-        row.className = 'result-row' + (i === 0 ? ' winner' : '');
-        row.innerHTML = `
-            <span class="result-name">${i === 0 ? '🏆 ' : ''}${r.name}</span>
-            <span class="result-votes">${r.votes} votes</span>
-        `;
-        resultsContent.appendChild(row);
+            votingSec.style.display = 'block';
+            renderVoteButtons(state.responses);
+        } else {
+            // First turn, waiting for message
+            grid.innerHTML = '<p style="text-align:center; color: var(--text-secondary)">Type a message above start the round.</p>';
+            votingSec.style.display = 'none';
+        }
+    }
+}
+
+function renderVoteButtons(responses) {
+    const container = document.getElementById('vote-options');
+    container.innerHTML = responses.map(r => `
+        <button class="vote-btn" onclick="castVote('${r.alias}')">${r.alias}</button>
+    `).join('');
+}
+
+async function castVote(alias) {
+    await fetch('/api/vote/human', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voter_token: sessionToken, agent_alias: alias })
+    });
+    // Visual feedback
+    document.querySelectorAll('.vote-btn').forEach(b => {
+        if (b.textContent === alias) b.classList.add('selected');
+        b.disabled = true;
+    });
+}
+
+function renderResults(state) {
+    const container = document.getElementById('results-content');
+
+    // Tally Human Votes
+    const humanTally = {};
+    Object.values(state.human_votes || {}).forEach(alias => {
+        humanTally[alias] = (humanTally[alias] || 0) + 1;
     });
 
-    showScreen(resultsScreen);
+    // Tally LLM Votes
+    const llmTally = {};
+    Object.values(state.llm_votes || {}).forEach(alias => {
+        llmTally[alias] = (llmTally[alias] || 0) + 1;
+    });
+
+    // Map aliases to real names and times
+    // In 'results' state, server sends 'model_name' in responses
+    const map = {};
+    if (state.responses) {
+        state.responses.forEach(r => {
+            map[r.alias] = {
+                name: r.model_name,
+                avg_time: state.avg_timings[r.model_name] || '?'
+            };
+        });
+    }
+
+    const html = `
+        <div class="result-column">
+            <h3>👥 Human Votes</h3>
+            ${renderTallyList(humanTally, map)}
+        </div>
+        <div class="result-column">
+            <h3>🤖 LLM Votes</h3>
+            ${renderTallyList(llmTally, map)}
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+function renderTallyList(tally, map) {
+    const sorted = Object.entries(tally).sort((a, b) => b[1] - a[1]);
+
+    if (sorted.length === 0) return '<p style="text-align:center; opacity:0.5">No votes cast</p>';
+
+    return sorted.map(([alias, count], i) => {
+        const info = map[alias] || { name: 'Unknown', avg_time: '?' };
+        return `
+        <div class="result-row ${i === 0 ? 'winner' : ''}">
+            <div>
+                <strong>${alias}</strong> <span style="color:var(--text-secondary)">(${info.name})</span>
+                <br>
+                <span class="latency-badge">Avg: ${info.avg_time}ms</span>
+            </div>
+            <div class="result-votes">${count} votes</div>
+        </div>
+        `;
+    }).join('');
+}
+
+// --- Buttons ---
+document.getElementById('send-btn').addEventListener('click', async () => {
+    const msg = document.getElementById('message-input').value;
+    if (!msg) return;
+
+    await fetch('/api/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'token': sessionToken },
+        body: JSON.stringify({ message: msg })
+    });
+    document.getElementById('message-input').value = '';
 });
 
-// Restart
-restartBtn.addEventListener('click', () => {
-    showScreen(setupScreen);
+document.getElementById('reveal-btn').addEventListener('click', async () => {
+    await fetch('/api/reveal', { headers: { 'token': sessionToken }, method: 'POST' });
 });
 
-// Utility
+document.getElementById('next-turn-btn').addEventListener('click', () => {
+    // Switch view back to arena to type next message
+    // Server status stays 'results' until we send a message?
+    // No, server logic needs to handle transition. 
+    // But since "Anyone can send next message", we can just show the Arena screen 
+    // even if status is results, but purely client side? No.
+    // We should probably tell server "we are done viewing results".
+    // But simpliest is: User toggles UI to Arena, types message, clicks send.
+    // Send -> triggers 'thinking' -> updates everyone.
+
+    // I will manually force show Arena on client side, but really we need a "Reset Status" API?
+    // Not strictly needed if /api/send works from any state.
+    // But to show the Input box, we must be in Arena screen.
+    showScreen('arena');
+    // Clear previous responses visually until new state arrives
+    document.getElementById('responses-grid').innerHTML = '<p style="text-align:center">Ready for next turn...</p>';
+    document.getElementById('voting-section').style.display = 'none';
+});
+
+// Utils
+function showScreen(id) {
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    screens[id].classList.add('active');
+}
 function escapeHtml(text) {
     if (!text) return '';
-    return text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }

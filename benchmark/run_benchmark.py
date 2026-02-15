@@ -80,6 +80,10 @@ async def run_benchmark():
                 os.environ["MODEL_PRIMARY"] = model
                 os.environ["MODEL_FALLBACK"] = model # Use same for fallback in benchmark
             
+            # Force overwrite PRIMARY key also, because llm.py prioritizes it over NVIDIA_API_KEY
+            os.environ["NVIDIA_API_KEY_PRIMARY"] = api_key
+            os.environ["NVIDIA_API_KEY_FALLBACK"] = ""
+            
             # Clear cache to force reload from os.environ
             get_settings.cache_clear()
             

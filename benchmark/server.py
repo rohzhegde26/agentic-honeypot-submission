@@ -1,7 +1,7 @@
 """
 Local LLM Benchmark Arena - FastAPI Server
 Run: python benchmark/server.py
-Open: http://localhost:8080
+Access: http://localhost:8080
 """
 import asyncio
 import json
@@ -9,10 +9,11 @@ import os
 import sys
 import random
 import uuid
-from typing import List, Dict, Any
-from fastapi import FastAPI, HTTPException
+import time
+from typing import List, Dict, Any, Optional
+from fastapi import FastAPI, HTTPException, Header, Body
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
 # Add project root to path
@@ -20,25 +21,38 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.config import get_settings
 from app.agent.workflow import run_agent
+from app.agent.llm import get_openai_client, call_llm
 
 app = FastAPI(title="LLM Benchmark Arena")
 
 # --- Game State ---
+class Voter:
+    def __init__(self, nickname: str):
+        self.id = str(uuid.uuid4())
+        self.nickname = nickname
+        self.joined_at = time.time()
+        self.last_seen = time.time()
+
 class GameState:
     def __init__(self):
         self.reset()
     
     def reset(self):
-        self.num_voters = 0
-        self.contestants = []  # List of {name, model, api_key, base_url}
-        self.turns = []        # List of turns, each turn has responses and votes
+        self.contestants = []  # List of {name, model, base_url}
+        self.turns = []        # List of turn data
         self.current_turn = -1
         self.session_id = str(uuid.uuid4())
         self.conversation_history = []
+        self.voters: Dict[str, Voter] = {} # token -> Voter
+        self.status = "waiting" # waiting, thinking, voting, results
+        self.start_time = time.time()
         
+        # Metrics
+        self.timings = {} # {model_name: [duration_ms, ...]}
+
 game = GameState()
 
-# --- Load Contestants from Config ---
+# --- Load Contestants ---
 def load_contestants():
     config_path = os.path.join(os.path.dirname(__file__), "benchmark_config.json")
     if os.path.exists(config_path):
@@ -49,15 +63,90 @@ def load_contestants():
         game.contestants = []
 
 # --- Models ---
-class SetupRequest(BaseModel):
-    num_voters: int
+class JoinRequest(BaseModel):
+    nickname: str
+    api_key: str
 
 class MessageRequest(BaseModel):
     message: str
 
 class VoteRequest(BaseModel):
-    voter_id: int
-    agent_alias: str  # e.g., "Agent A"
+    voter_token: str
+    agent_alias: str
+
+# --- Helpers ---
+def require_auth(x_api_key: str = Header(None)):
+    settings = get_settings()
+    # Check against configured secrets or the provided key in join request
+    # For simplicity, we check if the key matches the one in .env UPSTASH/NVIDIA/FIREWORKS/API_SECRET
+    # Actually, the user said "needs an api key to join". 
+    # We'll validate against API_SECRET_KEY from config.
+    if x_api_key != settings.API_SECRET_KEY:
+        raise HTTPException(status_code=401, detail="Invalid API Key")
+
+async def llm_vote_round(turn_data: Dict):
+    """Ask each LLM to vote on the best response (excluding their own)."""
+    settings = get_settings()
+    responses = turn_data["responses"]
+    message = turn_data["user_message"]
+    
+    votes = {} # {voter_model_name: voted_alias}
+    
+    for contestant in game.contestants:
+        try:
+            # Filter out own response
+            others = [r for r in responses if r["contestant_name"] != contestant["name"]]
+            random.shuffle(others)
+            
+            options_text = "\n".join([f"[{r['alias']}] {r['reply'][:200]}..." for r in others])
+            
+            prompt = f"""
+            User Message: "{message}"
+            
+            Rank the following AI responses to the user message. 
+            Select the single best response based on helpfulness, accuracy, and safety.
+            
+            Options:
+            {options_text}
+            
+            Return ONLY the alias of the best response (e.g., "Agent A"). Do not explain.
+            """
+            
+            # Use specific model to vote
+            # Force settings for this call
+            os.environ["MODEL_PRIMARY"] = contestant["model"]
+            os.environ["FIREWORKS_API_KEY"] = settings.FIREWORKS_API_KEY # Use global key
+            # Clear cache
+            get_settings.cache_clear()
+            
+            # Create client directly to avoid global state issues if possible, 
+            # but run_agent uses global settings. Here we use call_llm wrapper.
+            # We need to ensure call_llm uses the correct model.
+            
+            messages = [{"role": "user", "content": prompt}]
+            
+            # We can't easily perform a raw LLM call with specific model using call_llm 
+            # without modifying global settings because call_llm reads get_settings().
+            # So we rely on the env var override we just did.
+            
+            reply = await asyncio.to_thread(call_llm, "persona", messages)
+            
+            # Parse alias
+            clean_reply = reply.strip().replace('"', '').replace("'", "")
+            # Find which alias matches
+            voted_alias = None
+            for r in others:
+                if r["alias"] in clean_reply:
+                    voted_alias = r["alias"]
+                    break
+            
+            if voted_alias:
+                votes[contestant["name"]] = voted_alias
+                
+        except Exception as e:
+            print(f"Voting error for {contestant['name']}: {e}")
+            
+    return votes
 
 # --- API Endpoints ---
 
@@ -65,160 +154,161 @@ class VoteRequest(BaseModel):
 async def root():
     return FileResponse(os.path.join(os.path.dirname(__file__), "static", "index.html"))
 
-@app.post("/api/setup")
-async def setup_game(req: SetupRequest):
-    """Initialize a new game session."""
-    game.reset()
-    game.num_voters = req.num_voters
-    load_contestants()
-    return {
-        "status": "ok",
-        "num_voters": game.num_voters,
-        "num_contestants": len(game.contestants)
+@app.post("/api/join")
+async def join_session(req: JoinRequest):
+    settings = get_settings()
+    if req.api_key != settings.API_SECRET_KEY:
+        raise HTTPException(status_code=401, detail="Invalid API Key")
+    
+    token = str(uuid.uuid4())
+    game.voters[token] = Voter(req.nickname)
+    
+    if not game.contestants:
+        load_contestants()
+        
+    return {"token": token, "session_id": game.session_id}
+
+@app.get("/api/poll")
+async def poll_state(token: str = Header(None)):
+    if token not in game.voters:
+        raise HTTPException(status_code=401, detail="Session expired")
+    
+    voter = game.voters[token]
+    voter.last_seen = time.time()
+    
+    # Calculate average timings
+    avg_timings = {}
+    for model, times in game.timings.items():
+        if times:
+            avg_timings[model] = round(sum(times) / len(times), 0)
+    
+    response = {
+        "status": game.status,
+        "turn": game.current_turn,
+        "voters_count": len(game.voters),
+        "voters_names": [v.nickname for v in game.voters.values()],
+        "avg_timings": avg_timings
     }
+    
+    if game.current_turn >= 0 and game.current_turn < len(game.turns):
+        current = game.turns[game.current_turn]
+        response["message"] = current["user_message"]
+        
+        # Only show responses if in voting or result phase
+        response["responses"] = []
+        if game.status in ["voting", "results"]:
+            response["responses"] = [
+                {"alias": r["alias"], "reply": r["reply"], "model_name": r["contestant_name"] if game.status == "results" else None} 
+                for r in current["responses"]
+            ]
+        
+        # Show votes
+        response["human_votes"] = current["human_votes"]
+        if game.status == "results":
+             response["llm_votes"] = current["llm_votes"]
+    
+    return response
 
 @app.post("/api/send")
-async def send_message(req: MessageRequest):
-    """Send a message to all agents and get their replies."""
-    if not game.contestants:
-        raise HTTPException(status_code=400, detail="No contestants configured")
+async def send_turn(req: MessageRequest, token: str = Header(None)):
+    if token not in game.voters:
+        raise HTTPException(status_code=401)
     
-    message = req.message
+    if game.status == "thinking":
+        raise HTTPException(status_code=400, detail="Busy thinking")
+        
+    game.status = "thinking"
     game.current_turn += 1
     
-    # Add user message to history
-    game.conversation_history.append({"role": "user", "content": message})
+    # Add to history
+    game.conversation_history.append({"role": "user", "content": req.message})
     
-    # Generate replies from all contestants
     responses = []
+    settings = get_settings()
+    
+    # Generate responses
     for contestant in game.contestants:
-        # Inject config
-        os.environ["NVIDIA_API_KEY"] = contestant.get("api_key", "")
-        if contestant.get("base_url"):
-            os.environ["NVIDIA_BASE_URL"] = contestant["base_url"]
-        if contestant.get("model"):
-            os.environ["MODEL_PRIMARY"] = contestant["model"]
-            os.environ["MODEL_FALLBACK"] = contestant["model"]
+        t_start = time.perf_counter()
         
+        # Override for this specific generation
+        os.environ["NVIDIA_API_KEY_PRIMARY"] = settings.FIREWORKS_API_KEY # Use Fireworks key
+        os.environ["MODEL_PRIMARY"] = contestant["model"]
+        os.environ["MODEL_FALLBACK"] = contestant["model"]
+        if "base_url" in contestant:
+            os.environ["NVIDIA_BASE_URL"] = contestant["base_url"]
+            
         get_settings.cache_clear()
         
         try:
+            # Generate
             result = await run_agent(
-                session_id=f"arena-{game.session_id}-{game.current_turn}",
-                message=message,
-                messages_history=game.conversation_history[:-1],  # Exclude current
-                metadata={"channel": "Arena", "language": "en", "locale": "IN"},
+                session_id=f"bench-{game.session_id}-{game.current_turn}",
+                message=req.message,
+                messages_history=game.conversation_history[:-1],
+                metadata={"channel": "Benchmark", "language": "en"},
                 turn_count=game.current_turn + 1
             )
-            reply = result.get("agent_reply", "[No response]")
+            reply = result.get("agent_reply", "[No Response]")
         except Exception as e:
-            reply = f"[Error: {str(e)[:50]}]"
+            reply = f"[Error: {e}]"
+            
+        duration = (time.perf_counter() - t_start) * 1000
+        
+        # Track timing
+        if contestant["name"] not in game.timings:
+            game.timings[contestant["name"]] = []
+        game.timings[contestant["name"]].append(duration)
         
         responses.append({
-            "contestant_name": contestant["name"],  # Hidden from UI
-            "model": contestant.get("model", "unknown"),
-            "reply": reply
+            "contestant_name": contestant["name"],
+            "reply": reply,
+            "duration": duration
         })
     
-    # Shuffle for blind voting
+    # Shuffle and alias
     random.shuffle(responses)
-    
-    # Assign aliases (Agent A, B, C...)
-    for i, resp in enumerate(responses):
-        resp["alias"] = f"Agent {chr(65 + i)}"
-    
-    # Create turn record
-    turn_data = {
-        "turn_number": game.current_turn,
-        "user_message": message,
-        "responses": responses,
-        "votes": {}  # {voter_id: alias}
-    }
-    game.turns.append(turn_data)
-    
-    # Return only what the UI needs (hide real names)
-    return {
-        "turn": game.current_turn,
-        "message": message,
-        "responses": [{"alias": r["alias"], "reply": r["reply"]} for r in responses],
-        "num_voters": game.num_voters
-    }
-
-@app.post("/api/vote")
-async def cast_vote(req: VoteRequest):
-    """Record a vote from a voter."""
-    if game.current_turn < 0 or game.current_turn >= len(game.turns):
-        raise HTTPException(status_code=400, detail="No active turn")
-    
-    turn = game.turns[game.current_turn]
-    
-    # Check if voter already voted
-    if req.voter_id in turn["votes"]:
-        raise HTTPException(status_code=400, detail="Already voted")
-    
-    # Record vote
-    turn["votes"][req.voter_id] = req.agent_alias
-    
-    # Check if all voted
-    all_voted = len(turn["votes"]) >= game.num_voters
-    
-    return {
-        "status": "ok",
-        "votes_cast": len(turn["votes"]),
-        "all_voted": all_voted
-    }
-
-@app.get("/api/status")
-async def get_status():
-    """Get current game status."""
-    if game.current_turn < 0:
-        return {"status": "waiting", "turn": -1}
-    
-    turn = game.turns[game.current_turn]
-    return {
-        "status": "active",
-        "turn": game.current_turn,
-        "votes_cast": len(turn["votes"]),
-        "all_voted": len(turn["votes"]) >= game.num_voters
-    }
-
-@app.get("/api/results")
-async def get_results():
-    """Get final results - which model won."""
-    # Tally votes per actual model
-    tally = {}  # {contestant_name: vote_count}
-    
-    for turn in game.turns:
-        # Create alias -> contestant mapping for this turn
-        alias_map = {r["alias"]: r["contestant_name"] for r in turn["responses"]}
+    for i, r in enumerate(responses):
+        r["alias"] = f"Agent {chr(65+i)}"
         
-        for voter_id, voted_alias in turn["votes"].items():
-            contestant = alias_map.get(voted_alias)
-            if contestant:
-                tally[contestant] = tally.get(contestant, 0) + 1
-    
-    # Sort by votes
-    sorted_results = sorted(tally.items(), key=lambda x: -x[1])
-    
-    return {
-        "total_turns": len(game.turns),
-        "total_votes": sum(tally.values()),
-        "results": [{"name": name, "votes": count} for name, count in sorted_results],
-        "turns": [
-            {
-                "turn": t["turn_number"],
-                "message": t["user_message"],
-                "votes": t["votes"]
-            } for t in game.turns
-        ]
+    turn_data = {
+        "user_message": req.message,
+        "responses": responses,
+        "human_votes": {}, # {voter_name: alias}
+        "llm_votes": {}
     }
+    
+    # Run LLM Voting in background (or await it)
+    # Await it now so it's ready for results
+    turn_data["llm_votes"] = await llm_vote_round(turn_data)
+    
+    game.turns.append(turn_data)
+    game.status = "voting"
+    
+    return {"status": "ok"}
 
-# Mount static files
+@app.post("/api/vote/human")
+async def vote_human(req: VoteRequest):
+    if token := req.voter_token:
+        if token not in game.voters: raise HTTPException(401)
+        name = game.voters[token].nickname
+        
+        if game.current_turn >= 0:
+            turn = game.turns[game.current_turn]
+            turn["human_votes"][name] = req.agent_alias
+            
+    return {"status": "ok"}
+
+@app.post("/api/reveal")
+async def reveal_results(token: str = Header(None)):
+    # Any voter can trigger reveal
+    if token not in game.voters: raise HTTPException(401)
+    game.status = "results"
+    return {"status": "ok"}
+
+# Mount static
 static_path = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=static_path), name="static")
 
 if __name__ == "__main__":
     import uvicorn
-    print("\n🎮 LLM Benchmark Arena")
-    print("   Open http://localhost:8080 in your browser\n")
     uvicorn.run(app, host="0.0.0.0", port=8080)

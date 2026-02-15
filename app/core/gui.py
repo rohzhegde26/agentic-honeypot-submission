@@ -230,9 +230,16 @@ tr:hover { background:var(--bg-primary); }
 <div class="header">
   <h1>🍯 <span>Agentic Honeypot</span> Dashboard<span class="badge">LIVE</span></h1>
   <div class="header-right">
-    <span class="lock-status" id="lockStatus">🔒 Admin Locked</span>
-    <input type="password" class="api-key-input" id="apiKeyInput" placeholder="Enter Admin API Key...">
-    <button class="unlock-btn" id="unlockBtn" onclick="unlockAdmin()">Unlock</button>
+    <!-- Benchmark Section -->
+    <div style="display:flex; gap:8px; align-items:center; margin-right:16px; border-right:1px solid var(--border); padding-right:16px;">
+        <input type="password" class="api-key-input" id="benchmarkKey" placeholder="Benchmark Key" style="width:160px;">
+        <button class="unlock-btn" style="background:var(--accent-purple)" onclick="openBenchmark()">Benchmark</button>
+    </div>
+
+    <!-- Admin Section -->
+    <input type="password" class="api-key-input" id="apiKey" placeholder="Admin API Key">
+    <button class="unlock-btn" onclick="unlockAdmin()">Unlock</button>
+    <span class="lock-status" id="lockStatus">Locked</span>
   </div>
 </div>
 
@@ -381,9 +388,17 @@ function showToast(msg, color) {
   setTimeout(() => t.classList.remove('show'), 2000);
 }
 
+function openBenchmark() {
+    const key = document.getElementById('benchmarkKey').value.trim();
+    if(key) {
+        localStorage.setItem('benchmark_api_key_autofill', key);
+    }
+    window.open('/benchmark', '_blank');
+}
+
 // Admin Unlock
 function unlockAdmin() {
-  adminKey = document.getElementById('apiKeyInput').value.trim();
+  adminKey = document.getElementById('apiKey').value.trim(); // Changed from apiKeyInput to apiKey
   if (!adminKey) return;
   // Verify key by calling /admin/config
   fetch('/admin/config', { headers: { 'X-API-KEY': adminKey } })
