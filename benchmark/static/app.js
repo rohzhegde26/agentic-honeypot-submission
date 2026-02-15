@@ -25,6 +25,7 @@ if (sessionToken) {
 document.getElementById('join-btn').addEventListener('click', async () => {
     const apiKey = document.getElementById('api-key').value.trim();
     const nickname = document.getElementById('nickname').value.trim();
+    const playerCount = parseInt(document.getElementById('player-count').value) || 1;
 
     if (!apiKey || !nickname) return alert("Please enter API Key and Nickname");
 
@@ -32,7 +33,7 @@ document.getElementById('join-btn').addEventListener('click', async () => {
         const res = await fetch('api/join', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ api_key: apiKey, nickname })
+            body: JSON.stringify({ api_key: apiKey, nickname, expected_players: playerCount })
         });
 
         if (!res.ok) throw new Error("Invalid API Key");
@@ -94,6 +95,15 @@ function renderState(state) {
     // Screen Logic
     if (state.status === 'waiting') {
         showScreen('lobby');
+        const lobbyTitle = document.querySelector('#lobby-screen h2');
+        if (lobbyTitle) {
+            const remaining = (state.expected_players || 1) - (state.voters_count || 0);
+            if (remaining > 0) {
+                lobbyTitle.textContent = `Waiting for ${remaining} more player${remaining > 1 ? 's' : ''}...`;
+            } else {
+                lobbyTitle.textContent = `Lobby (Ready!)`;
+            }
+        }
     } else if (state.status === 'thinking' || state.status === 'voting') {
         showScreen('arena');
         renderArena(state);

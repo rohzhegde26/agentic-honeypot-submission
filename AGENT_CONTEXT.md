@@ -1,6 +1,6 @@
 # 🤖 Agent Context
 
-> Auto-generated on **2026-02-13 16:49 UTC** by `scripts/update_context.py`.  
+> Auto-generated on **2026-02-15 11:01 UTC** by `scripts/update_context.py`.  
 > Read this file to instantly understand the project's current state.
 
 ## Current Configuration
@@ -36,28 +36,28 @@
 |---|---|
 | `API_SECRET_KEY` | ✅ Set |
 | `NVIDIA_API_KEY_PRIMARY` | ✅ Set |
-| `NVIDIA_API_KEY_FALLBACK` | ❌ Not set |
+| `NVIDIA_API_KEY_FALLBACK` | ✅ Set |
 | `UPSTASH_REDIS_REST_URL` | ✅ Set |
 | `UPSTASH_REDIS_REST_TOKEN` | ✅ Set |
 | `OPENROUTER_API_KEY` | ❌ Not set |
 
 ## Deployment Targets
 
-- **hf**: `https://huggingface.co/spaces/GateKeepers1/agentic-honeypot`
 - **origin**: `https://github.com/RohitBharadwaj-rvu/agentic-honeypot.git`
+- **space**: `https://huggingface.co/spaces/rohithhegde26/agentic-honeypot`
 
 ## Recent Changes
 
-- `b7d6401 chore: update shared context with feature flags, strategies, dashboard endpoint`
-- `6e1ebcb feat: add feature flags, prompt strategy variants, response time dashboard`
-- `2a935fa feat: add competition readiness features - session timing, hot-swap config, deploy script, agent context`
-- `57bc4e3 docs: ensure authors are correct and LLM tech stack reflects project reality`
-- `039679f docs: update authors and fix clone URL in README.md`
-- `9939392 docs: update authors to Rohit P Hegde, Rohit Bharadwaj & S Sachitanandan; remove team name`
-- `623e366 Remove promotional message from README`
-- `e054c6e Update README to remove metadata`
-- `0941fdb docs: rewrite README â€” production-ready with architecture, credits, benchmarks, and API reference`
-- `219b2b2 fix: enforce language consistency and expand fallback variety`
+- `ae3d80b fix: robust api key validation and forced deployment update`
+- `1a6edd7 fix: remove legacy benchmark routes and fix sub-app asset paths`
+- `6e6036d feat: integrate benchmark arena and results viewer into main GUI`
+- `83c4166 feat: finalize benchmark solo mode and add deep research bundle`
+- `82af867 chore: merge remote changes and final benchmark refinements`
+- `9882024 feat: integrate multi-user fireworks benchmark with solo mode and auto-fill auth`
+- `d140a51 fix: resolve 500 error in api_honeypot and add missing import in reflection.py`
+- `c4c3d23 feat: implement zero-latency background reflection node for self-correction`
+- `8e457c7 feat: add reflection system prompt for top 6 strategy`
+- `8a85e57 feat: implement extractor-persona parallelization and guardrail llm defense`
 
 ## Key Files Reference
 

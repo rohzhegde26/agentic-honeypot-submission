@@ -49,6 +49,7 @@ class GameState:
         
         # Metrics
         self.timings = {} # {model_name: [duration_ms, ...]}
+        self.expected_players = 1
 
 game = GameState()
 
@@ -66,6 +67,7 @@ def load_contestants():
 class JoinRequest(BaseModel):
     nickname: str
     api_key: str
+    expected_players: int = 1
 
 class MessageRequest(BaseModel):
     message: str
@@ -168,12 +170,21 @@ async def join_session(req: JoinRequest):
         raise HTTPException(status_code=401, detail="Invalid API Key. Please use the correct Benchmark Secret Key.")
     
     token = str(uuid.uuid4())
-    game.voters[token] = Voter(req.nickname)
     
-    if not game.contestants:
+    # First player sets the expected count
+    if not game.voters:
+        game.reset()
+        game.expected_players = req.expected_players
         load_contestants()
         
-    return {"token": token, "session_id": game.session_id}
+    game.voters[token] = Voter(req.nickname)
+    
+    # Transition to input if all players joined
+    if len(game.voters) >= game.expected_players:
+        if game.status == "waiting":
+            game.status = "input"
+            
+    return {"token": token, "session_id": game.session_id, "expected_players": game.expected_players}
 
 @app.get("/api/poll")
 async def poll_state(token: str = Header(None)):
@@ -194,7 +205,8 @@ async def poll_state(token: str = Header(None)):
         "turn": game.current_turn,
         "voters_count": len(game.voters),
         "voters_names": [v.nickname for v in game.voters.values()],
-        "avg_timings": avg_timings
+        "avg_timings": avg_timings,
+        "expected_players": game.expected_players
     }
     
     if game.current_turn >= 0 and game.current_turn < len(game.turns):

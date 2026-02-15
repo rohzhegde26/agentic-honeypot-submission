@@ -254,7 +254,7 @@ def main():
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(content)
     
-    print(f"✅ AGENT_CONTEXT.md updated ({len(content)} bytes)")
+    print(f"[OK] AGENT_CONTEXT.md updated ({len(content)} bytes)")
 
 
 if __name__ == "__main__":
