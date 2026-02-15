@@ -161,14 +161,15 @@ Analyze the last 2 turns in the messages below. Evaluate:
 3. SELF-CORRECTION: What should the persona change for the next turn?
 
 OUTPUT FORMAT (JSON ONLY):
+IMPORTANT: START YOUR RESPONSE WITH '{{' AND END WITH '}}'. NO PREAMBLE. NO MARKDOWN.
+
 {{
     "reflection": "A short 1-2 sentence analysis of the state.",
-    "suggested_trait": "New persona trait (e.g. 'frightened', 'very compliant', 'extremely confused')",
-    "stall_adjustment": -10, 0, or +10 (relative change to stall chance),
-    "internal_thoughts": "Strategic reasoning for the evaluation notes."
+    "suggested_trait": "New persona trait",
+    "stall_adjustment": -10, 0, or +10,
+    "internal_thoughts": "Strategic reasoning"
 }}
-
-JSON ONLY. NO EXPLANATION."""
+"""
 
 
 # =============================================================================
