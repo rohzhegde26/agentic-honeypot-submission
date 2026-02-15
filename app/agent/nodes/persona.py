@@ -91,7 +91,7 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
     # LAYER 0: Semantic Cache Check (Optimization #8)
     # =========================================================================
     # For first turn only, check if this matches a common scam opening
-    if turn_count <= 1:
+    if turn_count <= 1 and not os.environ.get("BENCHMARK_MODE"):
         from app.agent.utils.semantic_cache import match_scam_pattern
         cached_response = match_scam_pattern(raw_message)
         if cached_response:

@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.config import get_settings
 from app.agent.workflow import run_agent
-from app.agent.llm import get_openai_client, call_llm
+from app.agent.llm import get_openai_client, call_llm, clear_client_cache
 
 app = FastAPI(title="LLM Benchmark Arena")
 
@@ -251,6 +251,7 @@ async def send_turn(req: MessageRequest, token: str = Header(None)):
         t_start = time.perf_counter()
         
         # Override for this specific generation
+        os.environ["BENCHMARK_MODE"] = "true"
         os.environ["NVIDIA_API_KEY_PRIMARY"] = settings.FIREWORKS_API_KEY # Use Fireworks key
         os.environ["MODEL_PRIMARY"] = contestant["model"]
         os.environ["MODEL_FALLBACK"] = contestant["model"]
@@ -258,11 +259,12 @@ async def send_turn(req: MessageRequest, token: str = Header(None)):
             os.environ["NVIDIA_BASE_URL"] = contestant["base_url"]
             
         get_settings.cache_clear()
+        clear_client_cache()
         
         try:
-            # Generate
+            # Generate with unique session ID per contestant to prevent state leakage
             result = await run_agent(
-                session_id=f"bench-{game.session_id}-{game.current_turn}",
+                session_id=f"bench-{game.session_id}-{contestant['name'].replace(' ', '-')}-{game.current_turn}",
                 message=req.message,
                 messages_history=game.conversation_history[:-1],
                 metadata={"channel": "Benchmark", "language": "en"},
