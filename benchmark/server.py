@@ -157,8 +157,15 @@ async def root():
 @app.post("/api/join")
 async def join_session(req: JoinRequest):
     settings = get_settings()
-    if req.api_key != settings.API_SECRET_KEY:
-        raise HTTPException(status_code=401, detail="Invalid API Key")
+    provided_key = req.api_key.strip()
+    # Allow either the specific API_SECRET_KEY or the FIREWORKS_API_KEY
+    valid_keys = [settings.API_SECRET_KEY.strip()]
+    if settings.FIREWORKS_API_KEY:
+        valid_keys.append(settings.FIREWORKS_API_KEY.strip())
+        
+    if provided_key not in valid_keys:
+        logger.warning(f"Benchmark join failed: Invalid API Key provided by {req.nickname}")
+        raise HTTPException(status_code=401, detail="Invalid API Key. Please use the correct Benchmark Secret Key.")
     
     token = str(uuid.uuid4())
     game.voters[token] = Voter(req.nickname)
