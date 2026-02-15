@@ -89,6 +89,30 @@ SUSPECTED_SCAM_KEYWORDS: List[str] = [
     "apk",
     "install",
     "app",
+    "investment",
+    "crypto",
+    "bitcoin",
+    "trading",
+    "double",
+    "profit",
+    "signals",
+    "hiring",
+    "job",
+    "salary",
+    "work from home",
+    "telegram",
+    "task",
+    "rating",
+    "hospital",
+    "accident",
+    "emergency",
+    "stuck",
+    "help",
+    "won",
+    "prize",
+    "lucky",
+    "gift",
+    "claim",
 ]
 
 
@@ -138,7 +162,9 @@ Return JSON only:
     "upiIds": ["list of UPI IDs like abc@upi, xyz@paytm"],
     "phoneNumbers": ["list of 10-digit phone numbers"],
     "phishingLinks": ["list of URLs"],
-    "bankAccounts": ["list of bank account numbers (9-18 digits)"]
+    "bankAccounts": ["list of bank account numbers (9-18 digits)"],
+    "scammerNames": ["names of persons mentioned, e.g., Sharma ji, Officer Amit"],
+    "staffIds": ["any employee or staff IDs mentioned"]
 }
 
 If nothing found, return empty lists. JSON only, no explanation."""

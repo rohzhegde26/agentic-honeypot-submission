@@ -30,8 +30,14 @@ def _generate_agent_notes(state: AgentState) -> str:
         tactics.append("KYC/verification pretext")
     if any(k in keywords for k in ["otp", "pin", "password"]):
         tactics.append("credential harvesting attempt")
-    if any(k in keywords for k in ["lottery", "prize", "won", "cashback"]):
+    if any(k in keywords for k in ["lottery", "prize", "won", "cashback", "lucky", "gift"]):
         tactics.append("prize/lottery fraud")
+    if any(k in keywords for k in ["job", "hiring", "salary", "work from home", "task", "rating", "telegram"]):
+        tactics.append("job/recruitment scam")
+    if any(k in keywords for k in ["investment", "crypto", "bitcoin", "trading", "profit", "double"]):
+        tactics.append("investment/crypto fraud")
+    if any(k in keywords for k in ["hospital", "accident", "emergency", "stuck", "help"]):
+        tactics.append("emergency/emotional social engineering")
     
     # Check what was extracted
     if extracted.get("upiIds"):
@@ -112,7 +118,7 @@ def output_node(state: AgentState) -> Dict[str, Any]:
         logger.info(f"Intelligence captured at turn {new_turn_count}. Starting 2-turn stall.")
 
     # Termination Logic
-    EXTRA_STALL_TURNS = 0
+    EXTRA_STALL_TURNS = 1
     MAX_TURNS_LIMIT = 25
 
     if current_intel_found_at is not None:
