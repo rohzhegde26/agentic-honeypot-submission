@@ -4,6 +4,7 @@ Runs in the background to analyze conversation effectiveness and adapt persona s
 """
 import logging
 import json
+import re
 from typing import Dict, Any
 
 from app.agent.llm import call_llm

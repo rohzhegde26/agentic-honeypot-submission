@@ -280,6 +280,7 @@ async def webhook(
 @router.post("/api/honeypot", response_model=WebhookResponse)
 async def api_honeypot(
     request: WebhookRequest,
+    background_tasks: BackgroundTasks,
     api_key: str = Depends(verify_api_key),
     session_manager: SessionManager = Depends(get_session_manager),
 ) -> WebhookResponse:
@@ -287,7 +288,7 @@ async def api_honeypot(
     Hackathon evaluation endpoint.
     Mirrors the webhook behavior and response shape.
     """
-    return await webhook(request, api_key=api_key, session_manager=session_manager)
+    return await webhook(request, background_tasks, api_key=api_key, session_manager=session_manager)
 
 
 # =============================================================================
