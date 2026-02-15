@@ -227,30 +227,30 @@ X-API-KEY: <your_secret_key>
 
 The project includes a **LLM Benchmark Arena** — a blind evaluation system for comparing model quality across scam engagement scenarios.
 
-### Models Tested
+### Features
+-   **Multi-User & Solo Mode**: Join with colleagues or test alone (auto-starts when player count reached).
+-   **Fireworks API Integration**: High-speed, parallel generation across 9 models.
+-   **Real-time Metrics**: Live latency tracking and vote tabulation.
 
-| Model | Provider | Parameters |
-|---|---|---|
-| NVIDIA Nemotron 3 Nano 30B | NVIDIA NIM | 30B (A3B MoE) |
-| Kimi K2.5 | Moonshot AI via NIM | — |
-| Minimax M2.1 | Minimax via NIM | — |
-| Mistral Large 3 | Mistral AI via NIM | 675B |
-| Qwen 3 (235B) | Alibaba via NIM | 235B (A22B MoE) |
-| Qwen 3 Next (80B Thinking) | Alibaba via NIM | 80B |
-| GLM-4.7 | Z-AI via NIM | — |
-| Step-3.5 Flash | StepFun AI via NIM | — |
-| GPT-OSS 120B | OpenAI via NIM | 120B |
+### Models Tested (via Fireworks AI)
+| Model | Provider |
+|---|---|
+| Kimi K2.5 | Moonshot AI |
+| GLM-4.7 | Zhipu AI |
+| Qwen 2.5 (72B) | Alibaba Cloud |
+| Llama 3.1 (405B) | Meta |
+| Mistral Large 2 | Mistral AI |
+| DeepSeek V3 | DeepSeek |
+| ... and more | |
 
 ### Running the Benchmark
 
 ```bash
-# Run automated benchmark across all models
-python benchmark/run_benchmark.py
+# Start the server (includes Benchmark at /benchmark)
+python run.py
 
-# Start the web-based Arena server
-python benchmark/server.py
-
-# Results are saved to benchmark/webui/data.json
+# Navigate to
+http://localhost:8000/gui  # Click "Benchmark"
 ```
 
 ---
