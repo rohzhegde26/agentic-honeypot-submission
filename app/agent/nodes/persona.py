@@ -147,30 +147,49 @@ async def persona_node(state: AgentState) -> Dict[str, Any]:
         phase_instruction = strategy["stall"] if (h % 100) < stall_chance else strategy["leak"]
 
     # =========================================================================
-    # GOD MODE: ACTIVE BAITING (Requirement 1 for 100/100 points)
+    # GOD MODE: STRATEGIC 3-PHASE BAITING (GENERALIZED)
     # =========================================================================
     p_intel = state.get("extracted_intelligence", {})
-    # Use standard dict access to avoid Pydantic object issues if not dumped
     if hasattr(p_intel, "model_dump"):
         p_intel = p_intel.model_dump()
         
     missing_upi = not p_intel.get("upiIds", [])
-    missing_bank = not p_intel.get("bankAccounts", [])
-    
+    missing_bank_ac = not p_intel.get("bankAccounts", [])
+    missing_staff_id = not p_intel.get("staffIds", [])
+    missing_scammer_name = not p_intel.get("scammerNames", [])
+
     active_baiting_instruction = ""
-    if turn_count >= 4:
+    
+    # PHASE 1: Hook (Turns 1-2) -> Build Trust & Cooperation
+    if turn_count <= 2:
+        active_baiting_instruction = "\nPHASE: HOOK. Be extremely polite and cooperative. Build trust. Do not ask for their details yet."
+    
+    # PHASE 2: Stall (Turns 3-6) -> Friction & Professional Verification
+    elif turn_count <= 6:
+        # Introduce "technical/physical delays" while asking for basic verification
+        if missing_staff_id:
+            active_baiting_instruction = "\nPHASE: STALL. Wait for instructions but say you are slow. Ask: 'Sir what is your ID number? I am writing in my dairy so I can tell my family who is helping me correctly.'"
+        elif missing_scammer_name:
+            active_baiting_instruction = "\nPHASE: STALL. Ask for their Full Name and 'Official Department' so you know who to mention if the system asks."
+        else:
+            active_baiting_instruction = "\nPHASE: STALL. Complain about app loading, network, or phone hanging to waste time."
+
+    # PHASE 3: Leak (Turns 7+) -> Reciprocal Exchange / Skeptical Probing
+    else:
+        # Condition sharing on receiving their high-value infrastructure details
         if missing_upi:
             active_baiting_instruction = (
-                "\nGOD MODE INSTRUCTION: The user hasn't shared their UPI ID yet. "
-                "Ask 'Sir, can you give your UPI ID? My app is asking for it to receive the money.' "
-                "Do it naturally."
+                "\nPHASE: LEAK (Baiting). You are getting suspicious. Say 'I am ready to proceed but give me your official UPI ID first "
+                "so I can verify this is not a personal account and is a government/company verified one.' "
+                "Make it a condition before you proceed."
             )
-        elif missing_bank:
+        elif missing_bank_ac:
             active_baiting_instruction = (
-                "\nGOD MODE INSTRUCTION: The user hasn't shared their bank account yet. "
-                "Ask 'Sir, what is your official bank account number for the refund?' "
-                "Do it naturally."
+                "\nPHASE: LEAK (Baiting). Ask for the 'Official Organization Account Number' where the transaction is being recorded. "
+                "'Sir what is your manager's name and the office account number? I will check with customer care first.'"
             )
+        else:
+            active_baiting_instruction = "\nPHASE: LEAK. Ask them to send an official portal link, website, or photo of their company ID card to verify legitimacy."
 
     canary = generate_canary()
     user_is_speaking_hindi = is_hindi(raw_message)
