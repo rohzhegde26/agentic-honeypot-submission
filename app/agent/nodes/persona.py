@@ -7,6 +7,7 @@ SECURITY: Implements OWASP 2025 LLM Top 10 defenses against prompt injection.
 """
 import logging
 import time
+import os
 import re
 from typing import Dict, Any
 from app.agent.utils.language import is_hindi
