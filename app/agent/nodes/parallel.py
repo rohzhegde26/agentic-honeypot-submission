@@ -36,11 +36,10 @@ async def extract_and_respond(state: AgentState) -> Dict[str, Any]:
     - agent_notes: persona's "BLOCKED" notes override extractor's notes
     - timing_log: concatenated from both nodes
     """
-    # Run both nodes concurrently in thread pool
-    # (both use blocking call_llm internally)
+    # Run both nodes concurrently (now natively async)
     extractor_result, persona_result = await asyncio.gather(
-        asyncio.to_thread(extractor_node, state),
-        asyncio.to_thread(persona_node, state),
+        extractor_node(state),
+        persona_node(state),
     )
     
     # =========================================================================

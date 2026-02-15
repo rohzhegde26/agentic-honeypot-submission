@@ -39,7 +39,7 @@ async def run_reflection(session: SessionData) -> Dict[str, Any]:
             llm_messages.append({"role": role, "content": m["text"]})
             
         # Call LLM
-        response_text = call_llm("reflection", llm_messages)
+        response_text = await call_llm("reflection", llm_messages)
         
         try:
             # Parse JSON with robust extraction

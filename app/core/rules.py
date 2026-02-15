@@ -130,6 +130,9 @@ PHONE_PATTERN: Pattern = re.compile(r'(?:\+91[\s-]?)?[6-9]\d{9}\b|\b\d{10}\b')
 # Phishing link pattern
 LINK_PATTERN: Pattern = re.compile(r'https?://[^\s<>"\']+|www\.[^\s<>"\']+')
 
+# Email address pattern
+EMAIL_PATTERN: Pattern = re.compile(r'\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b')
+
 # Bank account pattern (9-18 digits, with context awareness)
 # Must be preceded by account-related words to reduce false positives
 BANK_ACCOUNT_CONTEXT_WORDS: List[str] = [
@@ -164,7 +167,8 @@ Return JSON only:
     "phishingLinks": ["list of URLs"],
     "bankAccounts": ["list of bank account numbers (9-18 digits)"],
     "scammerNames": ["names of persons mentioned, e.g., Sharma ji, Officer Amit"],
-    "staffIds": ["any employee or staff IDs mentioned"]
+    "staffIds": ["any employee or staff IDs mentioned"],
+    "emailAddresses": ["any email addresses found"]
 }
 
 If nothing found, return empty lists. JSON only, no explanation."""

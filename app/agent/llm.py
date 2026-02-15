@@ -1,12 +1,16 @@
 """
 LLM Wrapper Module.
 NVIDIA API calls using OpenAI SDK with retry logic and fallback handling.
+Fully asynchronous to prevent event loop blocking under heavy load.
 """
 import logging
+import asyncio
 import time
+import re
+import random
 from typing import List, Dict, Optional, Any
 
-from openai import OpenAI
+from openai import AsyncOpenAI
 import httpx
 from app.agent.utils.usage import log_token_usage
 
@@ -16,15 +20,13 @@ from app.core.rules import SAFE_FALLBACK_RESPONSE, SCRIPT_FALLBACK_RESPONSES
 logger = logging.getLogger(__name__)
 
 # Track script fallback index for cycling - Randomized start to avoid same starting message
-import re
-import random
 _script_fallback_index = random.randint(0, 100)
 
 # Regex to strip <think>...</think> blocks that some models embed in content
 _THINK_TAG_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
 
-# Persistent OpenAI client instances for each key
-_clients_cache: Dict[str, OpenAI] = {}
+# Persistent AsyncOpenAI client instances for each key
+_clients_cache: Dict[str, AsyncOpenAI] = {}
 
 
 def clear_client_cache():
@@ -33,9 +35,8 @@ def clear_client_cache():
     logger.info("LLM client cache cleared")
 
 
-def get_openai_client(api_key: Optional[str] = None, model: Optional[str] = None) -> OpenAI:
-    """Get or create a persistent OpenAI client instance.
-    Selects Fireworks or NVIDIA backend based on model name."""
+def get_openai_client(api_key: Optional[str] = None, model: Optional[str] = None) -> AsyncOpenAI:
+    """Get or create a persistent AsyncOpenAI client instance."""
     settings = get_settings()
     
     # Determine provider from model name
@@ -44,8 +45,7 @@ def get_openai_client(api_key: Optional[str] = None, model: Optional[str] = None
     if is_fireworks:
         key = settings.FIREWORKS_API_KEY
         base_url = settings.FIREWORKS_BASE_URL
-        # Reduce timeout for primary to 12s so fallback has room within 30s
-        timeout = 12.0
+        timeout = 15.0
     else:
         key = api_key or settings.NVIDIA_API_KEY_PRIMARY or settings.NVIDIA_API_KEY
         base_url = settings.NVIDIA_BASE_URL
@@ -54,18 +54,16 @@ def get_openai_client(api_key: Optional[str] = None, model: Optional[str] = None
     cache_key = f"{base_url}:{key[:8]}" if key else base_url
     
     if cache_key not in _clients_cache:
-        _clients_cache[cache_key] = OpenAI(
+        _clients_cache[cache_key] = AsyncOpenAI(
             base_url=base_url,
-            api_key=key or "missing-key", # Pass something to avoid OpenAI validation error if key is None
+            api_key=key or "missing-key",
             timeout=httpx.Timeout(timeout),
         )
     return _clients_cache[cache_key]
 
 
-# Model configuration - Routing based on settings
 def get_model_config():
     settings = get_settings()
-    # Default to Kimi as primary and Mistral as fallback as per user request
     return {
         "persona": {
             "primary": settings.MODEL_PRIMARY,
@@ -82,44 +80,28 @@ def get_model_config():
     }
 
 
-# Retry configuration - set to 1 to handle transient 429s
 MAX_RETRIES = 1
 BACKOFF_SECONDS = [1, 2]
 
 
 def _strip_thinking_content(content: str) -> str:
-    """Remove <think>...</think> blocks that may leak into the response.
-    
-    Some Kimi model variants embed chain-of-thought reasoning inside
-    <think> tags in the content field instead of (or in addition to)
-    the separate reasoning_content field. This strips them out.
-    """
+    """Remove <think>...</think> blocks."""
     if not content:
         return content
     cleaned = _THINK_TAG_RE.sub("", content).strip()
-    return cleaned if cleaned else content  # never return empty
+    return cleaned if cleaned else content
 
 
-def _call_with_retry(
-    client: OpenAI,
+async def _call_with_retry(
+    client: AsyncOpenAI,
     model: str,
     messages: List[Dict],
     task: Optional[str] = None
 ) -> Optional[str]:
-    """
-    Call model with retry logic for errors.
-    
-    Thinking mode (Kimi only, persona task):
-      - Enabled via extra_body chat_template_kwargs.
-      - Kimi thinking is binary (on/off) — no low/high modes exist.
-      - reasoning_content is checked first (separate field).
-      - <think>...</think> tags are stripped from content as safety net.
-      - max_tokens increased to 800 for Fireworks thinking to budget for overhead.
-    """
+    """Call model asynchronously with retry logic."""
     extra_body = {}
     is_thinking = False
-    # Enable thinking mode for any Fireworks model on persona task IF thinking flag is on
-    # (User confirmed all deployed models support this Fireworks feature)
+    
     settings = get_settings()
     is_fireworks = "fireworks" in model.lower() or "accounts/fireworks" in model.lower()
     
@@ -129,19 +111,16 @@ def _call_with_retry(
 
     for attempt in range(MAX_RETRIES + 1):
         try:
-            # Adjust parameters based on provider
-            # Thinking needs a higher budget since reasoning consumes tokens
             if is_fireworks:
                 max_tok = 800 if is_thinking else 400
             else:
                 max_tok = 400
             
-            # Enable JSON mode if requested via task
             res_format = None
             if task == "extract" or task == "reflection":
                 res_format = {"type": "json_object"}
 
-            completion = client.chat.completions.create(
+            completion = await client.chat.completions.create(
                 model=model,
                 messages=messages,
                 temperature=0.0 if (task == "extract" or task == "reflection") else 0.6,
@@ -155,30 +134,16 @@ def _call_with_retry(
             if completion.choices and completion.choices[0].message:
                 msg = completion.choices[0].message
                 
-                # --- Token usage logging ---
                 if completion.usage:
-                    logger.info(f"LLM Usage ({model}): prompt={completion.usage.prompt_tokens}, completion={completion.usage.completion_tokens}, total={completion.usage.total_tokens}")
                     log_token_usage(model, task, {
                         "prompt_tokens": completion.usage.prompt_tokens,
                         "completion_tokens": completion.usage.completion_tokens,
                         "total_tokens": completion.usage.total_tokens
                     })
                 
-                # --- Thinking token handling ---
-                # 1. Check for reasoning_content field (Kimi/Moonshot API format)
-                reasoning = getattr(msg, "reasoning_content", None)
-                if reasoning:
-                    logger.info(f"THINKING [{model}] reasoning_content: {len(reasoning)} chars")
-                
-                # 2. Get the main content
                 content = msg.content or ""
-                
-                # 3. Strip any <think>...</think> tags that leaked into content
                 if is_thinking and content:
-                    stripped = _strip_thinking_content(content)
-                    if stripped != content:
-                        logger.info(f"THINKING [{model}] Stripped {len(content) - len(stripped)} chars of <think> tags from content")
-                        content = stripped
+                    content = _strip_thinking_content(content)
                 
                 return content if content else None
             
@@ -186,140 +151,105 @@ def _call_with_retry(
             
         except Exception as e:
             error_str = str(e).lower()
-            
-            # If timeout, do NOT retry. Jump to fallback immediately to save time.
             if "timeout" in error_str or "deadline" in error_str:
-                logger.warning(f"Timeout on model {model}. Skipping retries.")
+                logger.warning(f"Timeout on model {model}.")
                 return None
 
             if "429" in error_str or "rate" in error_str:
                 logger.warning(f"Rate limited on model {model}, attempt {attempt + 1}")
                 if attempt < MAX_RETRIES:
-                    time.sleep(BACKOFF_SECONDS[attempt])
+                    await asyncio.sleep(BACKOFF_SECONDS[attempt])
                     continue
                 return None
             
-            if "401" in error_str or "403" in error_str or "unauthorized" in error_str:
-                logger.error(f"Authentication error for model {model}: {e}. Skipping retries.")
-                return None
-
             logger.warning(f"Error calling model {model}: {e}")
             if attempt < MAX_RETRIES:
-                time.sleep(BACKOFF_SECONDS[attempt])
+                await asyncio.sleep(BACKOFF_SECONDS[attempt])
                 continue
             return None
     
     return None
 
 
-def call_llm(task: str, messages: List[Dict]) -> str:
-    """
-    Call LLM with task-based model routing and separate keys.
-    """
+async def call_llm(task: str, messages: List[Dict]) -> str:
+    """Async entry point for LLM calls with routing."""
     global _script_fallback_index
     settings = get_settings()
     
-    # Get model configuration for task
     config = get_model_config().get(task)
     if not config:
-        logger.error(f"Unknown task: {task}")
         return SAFE_FALLBACK_RESPONSE
     
     primary_model = config["primary"]
     fallback_model = config["fallback"]
     
-    # Try primary model ONLY if we have a key
-    if "fireworks" in primary_model.lower() and not settings.FIREWORKS_API_KEY:
-        logger.warning(f"Skipping primary model {primary_model} - missing FIREWORKS_API_KEY")
-        result = None
-    else:
+    # Attempt 1: Primary
+    t0 = time.perf_counter()
+    result = None
+    if not ("fireworks" in primary_model.lower() and not settings.FIREWORKS_API_KEY):
         client_primary = get_openai_client(settings.NVIDIA_API_KEY_PRIMARY, model=primary_model)
-        result = _call_with_retry(client_primary, primary_model, messages, task=task)
+        result = await _call_with_retry(client_primary, primary_model, messages, task=task)
     
     if result:
+        ms = round((time.perf_counter() - t0) * 1000, 1)
+        logger.info(f"LLM SUCCESS: task={task} model={primary_model} dur={ms}ms")
         return result.strip()
     
-    # Try fallback model with fallback key
+    # Attempt 2: Fallback
     if fallback_model and fallback_model != primary_model:
-        logger.info(f"Switching to fallback model: {fallback_model}")
+        t1 = time.perf_counter()
+        logger.info(f"LLM FALLBACK: Switching to {fallback_model} for {task}")
         client_fallback = get_openai_client(settings.NVIDIA_API_KEY_FALLBACK, model=fallback_model)
-        result = _call_with_retry(client_fallback, fallback_model, messages, task=task)
+        result = await _call_with_retry(client_fallback, fallback_model, messages, task=task)
         
         if result:
+            ms = round((time.perf_counter() - t1) * 1000, 1)
+            logger.info(f"LLM SUCCESS (Fallback): model={fallback_model} dur={ms}ms")
             return result.strip()
     
-    # All attempts failed - use script fallback for persona tasks
-    logger.error(f"All LLM attempts failed for task: {task}")
-    
+    # Final Fallback: Scripted
     if task == "persona" and SCRIPT_FALLBACK_RESPONSES:
         last_msg = messages[-1]["content"].lower() if messages else ""
-        
-        # Context-aware fallback choices
         if "you" in last_msg and ("are" in last_msg or "who" in last_msg):
             response = "I am a retired person sir, who is this calling me?"
         elif "bot" in last_msg or "ai" in last_msg or "machine" in last_msg:
             response = "I am not understanding what you are saying... I am Ramesh. Why are you talking like this?"
-        elif "2" in last_msg and "+" in last_msg:
-            response = "Sir I am not good at maths, my phone screen is too small to see properly."
         else:
             response = SCRIPT_FALLBACK_RESPONSES[_script_fallback_index % len(SCRIPT_FALLBACK_RESPONSES)]
             _script_fallback_index += 1
             
-        logger.info(f"Using script fallback: {response}")
+        logger.info(f"LLM SCRIPT FALLBACK: task={task} response='{response[:20]}...'")
         return response
     
     return SAFE_FALLBACK_RESPONSE
-# =============================================================================
-# GUARDRAIL LLM
-# =============================================================================
 
-def get_nvidia_client():
-    from openai import OpenAI
-    settings = get_settings()
-    if not settings.NVIDIA_API_KEY_PRIMARY:
-        return None
-    return OpenAI(
-        base_url="https://integrate.api.nvidia.com/v1",
-        api_key=settings.NVIDIA_API_KEY_PRIMARY
-    )
 
-def check_guardrail(text: str) -> Dict[str, Any]:
-    """
-    Check input text against Guardrail LLM (NVIDIA NIM).
-    Returns {"safe": bool, "risk": str, "latency": float}
-    """
+async def check_guardrail(text: str) -> Dict[str, Any]:
+    """Check input text against Guardrail LLM (Async)."""
     settings = get_settings()
     if not settings.FLAG_GUARDRAIL:
         return {"safe": True, "risk": "disabled", "latency": 0.0}
     
     t_start = time.perf_counter()
-    client = get_nvidia_client()
+    client = AsyncOpenAI(
+        base_url="https://integrate.api.nvidia.com/v1",
+        api_key=settings.NVIDIA_API_KEY_PRIMARY
+    ) if settings.NVIDIA_API_KEY_PRIMARY else None
     
     if not client:
-        logger.warning("Guardrail enabled but NVIDIA_API_KEY_PRIMARY missing")
         return {"safe": True, "risk": "missing_key", "latency": 0.0}
 
     try:
-        # Granite Guardian 3.0 8B using extra_body for config
-        # "risk_name": "jailbreak" is the specific check we want
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model=settings.GUARDRAIL_MODEL,
             messages=[{"role": "user", "content": text}],
             extra_body={"guardian_config": {"risk_name": "jailbreak"}},
             max_tokens=10,
         )
-        
-        # Parse response - usually "Yes" (unsafe) or "No" (safe)
         content = response.choices[0].message.content.strip().lower()
-        is_safe = "no" in content  # "No" means no risk found
-        
+        is_safe = "no" in content
         elapsed = round((time.perf_counter() - t_start) * 1000, 1)
-        
-        if not is_safe:
-            logger.warning(f"Guardrail BLOCKED input: {text[:50]}... (Reason: {content})")
-            
         return {"safe": is_safe, "risk": content if not is_safe else "none", "latency": elapsed}
-        
     except Exception as e:
         logger.error(f"Guardrail check failed: {e}")
         return {"safe": True, "risk": "error_bypass", "latency": 0.0}

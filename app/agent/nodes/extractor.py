@@ -23,6 +23,7 @@ from app.core.rules import (
     SUSPECTED_SCAM_KEYWORDS,
     EXTRACT_SYSTEM_PROMPT,
     STAFF_ID_PATTERN,
+    EMAIL_PATTERN,
 )
 
 
@@ -48,6 +49,11 @@ def _extract_phone_numbers(text: str) -> List[str]:
 def _extract_links(text: str) -> List[str]:
     """Extract phishing links from text using regex."""
     return LINK_PATTERN.findall(text)
+
+
+def _extract_emails(text: str) -> List[str]:
+    """Extract email addresses from text using regex."""
+    return EMAIL_PATTERN.findall(text)
 
 
 def _extract_bank_accounts(text: str) -> List[str]:
@@ -137,6 +143,8 @@ def _parse_llm_extraction(response: str) -> Dict[str, List[str]]:
             result["scammerNames"] = [str(x) for x in data["scammerNames"] if x]
         if isinstance(data.get("staffIds"), list):
             result["staffIds"] = [str(x) for x in data["staffIds"] if x]
+        if isinstance(data.get("emailAddresses"), list):
+            result["emailAddresses"] = [str(x) for x in data["emailAddresses"] if x]
             
     except (json.JSONDecodeError, AttributeError):
         pass
@@ -144,14 +152,10 @@ def _parse_llm_extraction(response: str) -> Dict[str, List[str]]:
     return result
 
 
-def extractor_node(state: AgentState) -> Dict[str, Any]:
+async def extractor_node(state: AgentState) -> Dict[str, Any]:
     """
     Extractor node: Extracts intelligence using regex + optional LLM reinforcement.
-    
-    Only updates: extracted_intelligence
-    Never overwrites existing values.
-    
-    Does NOT modify: scam_level, termination_reason
+    Now FULLY ASYNCHRONOUS.
     """
     t_start = time.perf_counter()
     llm_duration_ms = 0.0
@@ -159,21 +163,17 @@ def extractor_node(state: AgentState) -> Dict[str, Any]:
     message = state["current_user_message"]
     messages = state.get("messages", [])
     
-    # =========================================================================
     # PREPROCESSING: Normalize spaced digits
-    # =========================================================================
-    # Collapse spaced digits like "9 8 7 6 5 4 3 2 1 0" → "9876543210"
     message_normalized = _normalize_spaced_digits(message)
     
-    # Step 1: Regex extraction (deterministic) - use normalized message
+    # Step 1: Regex extraction (deterministic)
     regex_upi = _extract_upi_ids(message_normalized)
     regex_phones = _extract_phone_numbers(message_normalized)
     regex_links = _extract_links(message_normalized)
     regex_accounts = _extract_bank_accounts(message_normalized)
     regex_staff = _extract_staff_ids(message_normalized)
+    regex_emails = _extract_emails(message_normalized)
     regex_keywords = _extract_suspicious_keywords(message_normalized)
-    
-    # New extractions: IFSC, PAN, SEBI handles
     regex_ifsc = _extract_ifsc_codes(message_normalized)
     regex_pan = _extract_pan_numbers(message_normalized)
     regex_sebi = _extract_sebi_handles(message_normalized)
@@ -185,36 +185,23 @@ def extractor_node(state: AgentState) -> Dict[str, Any]:
     llm_accounts = []
     llm_names = []
     llm_staff = []
+    llm_emails = []
     
-    # Use LLM if regex missed critical intel or if we want better name/staff coverage
-    # Feature flag: skip LLM extraction entirely if disabled (saves ~2-5s latency)
     from app.config import get_settings
     settings = get_settings()
     needs_llm = not (regex_upi or regex_links or regex_accounts) and settings.FLAG_LLM_EXTRACTION
     
-    if not settings.FLAG_LLM_EXTRACTION:
-        logger.info("LLM extraction DISABLED by feature flag")
-    
     if needs_llm:
-        # Build context for LLM
-        context = f"Message to analyze: {message}"
+        context = f"Message: {message}"
         if messages:
-            scammer_texts = [
-                m.get("text", "")
-                for m in messages
-                if str(m.get("sender", "")).lower() == "scammer"
-            ]
+            scammer_texts = [m.get("text", "") for m in messages if str(m.get("sender", "")).lower() == "scammer"]
             if scammer_texts:
-                recent_texts = scammer_texts[-3:]
-                context += f"\n\nRecent context: {' | '.join(recent_texts)}"
+                context += f"\n\nContext: {' | '.join(scammer_texts[-3:])}"
         
-        llm_messages = [
-            {"role": "system", "content": EXTRACT_SYSTEM_PROMPT},
-            {"role": "user", "content": context},
-        ]
+        llm_messages = [{"role": "system", "content": EXTRACT_SYSTEM_PROMPT}, {"role": "user", "content": context}]
         
         t_llm_start = time.perf_counter()
-        llm_response = call_llm("extract", llm_messages)
+        llm_response = await call_llm("extract", llm_messages)
         llm_duration_ms = round((time.perf_counter() - t_llm_start) * 1000, 1)
         llm_data = _parse_llm_extraction(llm_response)
         
@@ -224,25 +211,26 @@ def extractor_node(state: AgentState) -> Dict[str, Any]:
         llm_accounts = llm_data["bankAccounts"]
         llm_names = llm_data["scammerNames"]
         llm_staff = llm_data["staffIds"]
-    else:
-        logger.info("Skipping LLM extraction (regex already found data)")
+        llm_emails = llm_data.get("emailAddresses", [])
     
-    # Step 3: Merge all extractions
+    # Step 3: Merge
     all_upi = list(set(regex_upi) | set(llm_upi))
     all_phones = list(set(regex_phones) | set(llm_phones))
     all_links = list(set(regex_links) | set(llm_links))
     all_accounts = list(set(regex_accounts) | set(llm_accounts))
+    all_emails = list(set(regex_emails) | set(llm_emails))
     all_keywords = list(set(regex_keywords))
-
-    # Qualitative extractions (names/ids) to be added to notes
     found_names = list(set(llm_names))
     found_staff = list(set(regex_staff) | set(llm_staff))
     found_ifsc = list(set(regex_ifsc))
     found_pan = list(set(regex_pan))
     found_sebi = list(set(regex_sebi))
     
-    # Step 4: Merge with existing intelligence (never overwrite)
+    # Step 4: Merge with existing
     existing = state.get("extracted_intelligence", {})
+    if hasattr(existing, "model_dump"):
+        existing = existing.model_dump()
+
     merged_intel = {
         "upiIds": list(set(existing.get("upiIds", [])) | set(all_upi)),
         "phoneNumbers": list(set(existing.get("phoneNumbers", [])) | set(all_phones)),
@@ -251,48 +239,37 @@ def extractor_node(state: AgentState) -> Dict[str, Any]:
         "suspiciousKeywords": list(set(existing.get("suspiciousKeywords", [])) | set(all_keywords)),
         "scammerNames": list(set(existing.get("scammerNames", [])) | set(found_names)),
         "staffIds": list(set(existing.get("staffIds", [])) | set(found_staff)),
+        "emailAddresses": list(set(existing.get("emailAddresses", [])) | set(all_emails)),
         "ifscCodes": list(set(existing.get("ifscCodes", [])) | set(found_ifsc)),
         "panNumbers": list(set(existing.get("panNumbers", [])) | set(found_pan)),
         "sebiHandles": list(set(existing.get("sebiHandles", [])) | set(found_sebi)),
     }
     
-    # Step 5: Update Agent Notes with qualitative data
+    # Step 5: Notes
     notes = state.get("agent_notes", "")
     new_notes = []
     if found_names:
         new_names = [n for n in found_names if n.lower() not in notes.lower()]
-        if new_names:
-            new_notes.append(f"Scammer name(s) identified: {', '.join(new_names)}")
+        if new_names: new_notes.append(f"Scammer name: {', '.join(new_names)}")
     if found_staff:
         new_ids = [i for i in found_staff if i.lower() not in notes.lower()]
-        if new_ids:
-            new_notes.append(f"Scammer Staff ID(s) identified: {', '.join(new_ids)}")
+        if new_ids: new_notes.append(f"Staff ID: {', '.join(new_ids)}")
             
     if new_notes:
-        if notes:
-            notes += "\n" + "\n".join(new_notes)
-        else:
-            notes = "\n".join(new_notes)
+        notes = (notes + "\n" if notes else "") + "\n".join(new_notes)
     
     # Determine if scam is confirmed
-    has_critical_intel = bool(
-        merged_intel["upiIds"] or 
-        merged_intel["bankAccounts"] or 
-        merged_intel["phishingLinks"]
-    )
+    has_critical_intel = bool(merged_intel["upiIds"] or merged_intel["bankAccounts"] or merged_intel["phishingLinks"])
     
     duration_ms = round((time.perf_counter() - t_start) * 1000, 1)
     timing_entry = {"node": "extractor", "duration_ms": duration_ms}
-    if llm_duration_ms:
-        timing_entry["llm_ms"] = llm_duration_ms
+    if llm_duration_ms: timing_entry["llm_ms"] = llm_duration_ms
     
     result = {
         "extracted_intelligence": merged_intel,
         "agent_notes": notes,
         "timing_log": [timing_entry],
     }
-    
     if has_critical_intel:
         result["is_scam_confirmed"] = True
-        
     return result

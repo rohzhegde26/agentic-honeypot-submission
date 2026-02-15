@@ -16,7 +16,7 @@ from app.core.rules import (
 )
 
 
-def detector_node(state: AgentState) -> Dict[str, Any]:
+async def detector_node(state: AgentState) -> Dict[str, Any]:
     """
     Detector node: Analyzes message for scam indicators using keyword heuristics.
     

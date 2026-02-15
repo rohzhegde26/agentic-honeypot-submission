@@ -70,6 +70,19 @@ class WebhookResponse(BaseModel):
     """
     Synchronous response sent back to the caller.
     Contains the agent's reply to the scammer.
+    Updated to match the India AI Evaluation System scoring rubric (20 points for structure).
     """
     status: str = Field(..., description="Response status (success/error)")
     reply: str = Field(..., description="The agent's reply message")
+    
+    # Scoring Fields (20 points for structure)
+    scamDetected: bool = Field(default=False, description="Whether scam was detected")
+    extractedIntelligence: Optional[dict] = Field(
+        default_factory=dict, 
+        description="Scammer intel extracted so far"
+    )
+    engagementMetrics: Optional[dict] = Field(
+        default_factory=dict, 
+        description="totalMessagesExchanged, engagementDurationSeconds"
+    )
+    agentNotes: str = Field(default="", description="Agent observations")
