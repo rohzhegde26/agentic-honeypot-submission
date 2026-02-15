@@ -92,6 +92,12 @@ function renderState(state) {
     const turnNum = document.getElementById('turn-num');
     if (turnNum) turnNum.textContent = state.turn + 1;
 
+    // Session ID
+    const sidLobby = document.getElementById('lobby-session-id');
+    const sidArena = document.getElementById('arena-session-id');
+    if (sidLobby) sidLobby.textContent = (state.session_id || '').substring(0, 8);
+    if (sidArena) sidArena.textContent = (state.session_id || '').substring(0, 8);
+
     // Screen Logic
     if (state.status === 'waiting') {
         showScreen('lobby');
@@ -104,7 +110,7 @@ function renderState(state) {
                 lobbyTitle.textContent = `Lobby (Ready!)`;
             }
         }
-    } else if (state.status === 'thinking' || state.status === 'voting') {
+    } else if (state.status === 'input' || state.status === 'thinking' || state.status === 'voting') {
         showScreen('arena');
         renderArena(state);
     } else if (state.status === 'results') {

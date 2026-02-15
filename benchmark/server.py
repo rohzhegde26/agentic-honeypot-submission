@@ -203,6 +203,7 @@ async def poll_state(token: str = Header(None)):
     response = {
         "status": game.status,
         "turn": game.current_turn,
+        "session_id": game.session_id,
         "voters_count": len(game.voters),
         "voters_names": [v.nickname for v in game.voters.values()],
         "avg_timings": avg_timings,
