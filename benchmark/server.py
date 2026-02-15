@@ -305,9 +305,11 @@ async def reveal_results(token: str = Header(None)):
     game.status = "results"
     return {"status": "ok"}
 
-# Mount static
-static_path = os.path.join(os.path.dirname(__file__), "static")
-app.mount("/static", StaticFiles(directory=static_path), name="static")
+# Mount static files
+# Use absolute path to ensure it works when mounted as a sub-app
+current_dir = os.path.dirname(os.path.abspath(__file__))
+static_path = os.path.join(current_dir, "static")
+app.mount("/static", StaticFiles(directory=static_path), name="benchmark_static")
 
 if __name__ == "__main__":
     import uvicorn

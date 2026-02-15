@@ -29,7 +29,7 @@ document.getElementById('join-btn').addEventListener('click', async () => {
     if (!apiKey || !nickname) return alert("Please enter API Key and Nickname");
 
     try {
-        const res = await fetch('/api/join', {
+        const res = await fetch('api/join', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ api_key: apiKey, nickname })
@@ -51,7 +51,7 @@ document.getElementById('join-btn').addEventListener('click', async () => {
 // --- Polling Loop ---
 async function pollState() {
     try {
-        const res = await fetch('/api/poll', {
+        const res = await fetch('api/poll', {
             headers: { 'token': sessionToken }
         });
 
@@ -141,7 +141,7 @@ function renderVoteButtons(responses) {
 }
 
 async function castVote(alias) {
-    await fetch('/api/vote/human', {
+    await fetch('api/vote/human', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ voter_token: sessionToken, agent_alias: alias })
@@ -219,7 +219,7 @@ document.getElementById('send-btn').addEventListener('click', async () => {
     const msg = document.getElementById('message-input').value;
     if (!msg) return;
 
-    await fetch('/api/send', {
+    await fetch('api/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'token': sessionToken },
         body: JSON.stringify({ message: msg })
@@ -228,7 +228,7 @@ document.getElementById('send-btn').addEventListener('click', async () => {
 });
 
 document.getElementById('reveal-btn').addEventListener('click', async () => {
-    await fetch('/api/reveal', { headers: { 'token': sessionToken }, method: 'POST' });
+    await fetch('api/reveal', { headers: { 'token': sessionToken }, method: 'POST' });
 });
 
 document.getElementById('next-turn-btn').addEventListener('click', () => {

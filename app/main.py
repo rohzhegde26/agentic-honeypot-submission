@@ -13,6 +13,13 @@ from app.config import get_settings
 from app.core.routes import router
 from app.services import get_session_manager
 
+# Import benchmark sub-apps
+try:
+    from benchmark.server import app as arena_app
+except ImportError:
+    logger.warning("Could not import Benchmark Arena app")
+    arena_app = None
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -63,6 +70,19 @@ app.add_middleware(
 
 # Include routes
 app.include_router(router)
+
+# Mount Benchmark Arena
+if arena_app:
+    app.mount("/arena", arena_app)
+    logger.info("Benchmark Arena mounted at /arena")
+
+# Mount Benchmark Results (Static)
+from fastapi.staticfiles import StaticFiles
+import os
+results_path = os.path.join(os.getcwd(), "benchmark", "webui")
+if os.path.exists(results_path):
+    app.mount("/benchmark", StaticFiles(directory=results_path, html=True), name="benchmark_results")
+    logger.info("Benchmark Results mounted at /benchmark")
 
 
 @app.exception_handler(RequestValidationError)

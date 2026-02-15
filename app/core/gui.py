@@ -230,12 +230,8 @@ tr:hover { background:var(--bg-primary); }
 <div class="header">
   <h1>🍯 <span>Agentic Honeypot</span> Dashboard<span class="badge">LIVE</span></h1>
   <div class="header-right">
-    <!-- Benchmark Section -->
-    <div style="display:flex; gap:8px; align-items:center; margin-right:16px; border-right:1px solid var(--border); padding-right:16px;">
-        <input type="password" class="api-key-input" id="benchmarkKey" placeholder="Benchmark Key" style="width:160px;">
-        <button class="unlock-btn" style="background:var(--accent-purple)" onclick="openBenchmark()">Benchmark</button>
-    </div>
-
+    <a href="/arena" target="_blank" style="color:var(--accent-yellow);text-decoration:none;font-size:0.8rem;font-weight:600;margin-right:15px;">🎮 Arena</a>
+    <a href="/benchmark" target="_blank" style="color:var(--accent-purple);text-decoration:none;font-size:0.8rem;font-weight:600;margin-right:15px;">📊 Benchmarks</a>
     <!-- Admin Section -->
     <input type="password" class="api-key-input" id="apiKey" placeholder="Admin API Key">
     <button class="unlock-btn" onclick="unlockAdmin()">Unlock</button>
