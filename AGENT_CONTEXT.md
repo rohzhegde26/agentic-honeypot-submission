@@ -1,6 +1,6 @@
 # 🤖 Agent Context
 
-> Auto-generated on **2026-02-15 11:55 UTC** by `scripts/update_context.py`.  
+> Auto-generated on **2026-02-15 12:00 UTC** by `scripts/update_context.py`.  
 > Read this file to instantly understand the project's current state.
 
 ## Current Configuration
@@ -48,6 +48,7 @@
 
 ## Recent Changes
 
+- `85d690a feat: expanded scam rules and tactical reporting for live finals`
 - `5a21211 fix: environment pollution and context-aware persona rejections`
 - `a0731c6 fix: add missing os import in persona_node`
 - `df6b38a fix: bypass semantic cache in benchmark to prevent duplicate replies`
@@ -57,7 +58,6 @@
 - `1a6edd7 fix: remove legacy benchmark routes and fix sub-app asset paths`
 - `6e6036d feat: integrate benchmark arena and results viewer into main GUI`
 - `83c4166 feat: finalize benchmark solo mode and add deep research bundle`
-- `82af867 chore: merge remote changes and final benchmark refinements`
 
 ## Key Files Reference
 

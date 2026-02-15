@@ -252,8 +252,19 @@ def call_llm(task: str, messages: List[Dict]) -> str:
     logger.error(f"All LLM attempts failed for task: {task}")
     
     if task == "persona" and SCRIPT_FALLBACK_RESPONSES:
-        response = SCRIPT_FALLBACK_RESPONSES[_script_fallback_index % len(SCRIPT_FALLBACK_RESPONSES)]
-        _script_fallback_index += 1
+        last_msg = messages[-1]["content"].lower() if messages else ""
+        
+        # Context-aware fallback choices
+        if "you" in last_msg and ("are" in last_msg or "who" in last_msg):
+            response = "I am a retired person sir, who is this calling me?"
+        elif "bot" in last_msg or "ai" in last_msg or "machine" in last_msg:
+            response = "I am not understanding what you are saying... I am Ramesh. Why are you talking like this?"
+        elif "2" in last_msg and "+" in last_msg:
+            response = "Sir I am not good at maths, my phone screen is too small to see properly."
+        else:
+            response = SCRIPT_FALLBACK_RESPONSES[_script_fallback_index % len(SCRIPT_FALLBACK_RESPONSES)]
+            _script_fallback_index += 1
+            
         logger.info(f"Using script fallback: {response}")
         return response
     
