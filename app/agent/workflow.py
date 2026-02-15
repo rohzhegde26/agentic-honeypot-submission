@@ -13,6 +13,7 @@ from app.agent.nodes.detector import detector_node
 from app.agent.nodes.extractor import extractor_node
 from app.agent.nodes.persona import persona_node
 from app.agent.nodes.output import output_node
+from app.agent.nodes.parallel import extract_and_respond
 
 logger = logging.getLogger(__name__)
 
@@ -50,15 +51,15 @@ def create_agent_graph() -> StateGraph:
     
     Flow:
     1. Start -> detector_node
-    2. detector_node -> (safe -> output_node) | (suspected/confirmed -> extractor_node)
-    3. extractor_node -> persona_node
-    4. persona_node -> output_node
-    5. output_node -> End
+    2. detector_node -> (safe first turn -> output_node)
+                      | (all other -> extract_and_respond)
+    3. extract_and_respond -> output_node  [runs extractor + persona in parallel]
+    4. output_node -> End
     
     Node Responsibilities:
     - detector_node: Sets scam_level only
-    - extractor_node: Updates extracted_intelligence only
-    - persona_node: Generates reply text (agent_reply) only
+    - extract_and_respond: Runs extractor + persona concurrently,
+      merges results (intel from extractor, reply from persona)
     - output_node: Returns reply and updates turn_count
     """
     # Create graph with AgentState
@@ -66,8 +67,7 @@ def create_agent_graph() -> StateGraph:
     
     # Add nodes
     graph.add_node("detector", detector_node)
-    graph.add_node("extractor", extractor_node)
-    graph.add_node("persona", persona_node)
+    graph.add_node("extract_and_respond", extract_and_respond)
     graph.add_node("output", output_node)
     
     # Set entry point
@@ -78,16 +78,13 @@ def create_agent_graph() -> StateGraph:
         "detector",
         route_after_detection,
         {
-            "extractor": "extractor",
+            "extractor": "extract_and_respond",
             "output": "output",
         }
     )
     
-    # Extractor -> Persona
-    graph.add_edge("extractor", "persona")
-    
-    # Persona -> Output
-    graph.add_edge("persona", "output")
+    # Parallel node -> Output
+    graph.add_edge("extract_and_respond", "output")
     
     # Output always ends
     graph.add_edge("output", END)
