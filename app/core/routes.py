@@ -5,7 +5,7 @@ Defines webhook and health check endpoints.
 import logging
 import asyncio
 import time
-from fastapi import APIRouter, Depends, Request, Header
+from fastapi import APIRouter, Depends, Request, Header, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional
 
@@ -22,6 +22,47 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 AGENT_TIMEOUT_SECONDS = 28  # Stay under 30s HuggingFace Spaces timeout
+
+
+async def reflection_task_wrapper(session_id: str, session_manager: SessionManager):
+    """
+    Background task to run agentic reflection without blocking the primary response.
+    """
+    try:
+        from app.agent.nodes.reflection import run_reflection
+        
+        # Reload session to get latest state
+        session = await session_manager.get_session(session_id)
+        if not session:
+            return
+            
+        # Only reflect every 3 turns to minimize token costs while showing agentic value
+        if session.turn_count % 3 != 0:
+            return
+            
+        logger.info(f"Running background reflection for session {session_id} at turn {session.turn_count}")
+        reflection_data = await run_reflection(session)
+        
+        if reflection_data:
+            # Update strategy/traits for turn N+1
+            if "suggested_trait" in reflection_data:
+                session.persona_trait = reflection_data["suggested_trait"]
+            
+            # Add to agent notes for AI evaluation visibility
+            reflection_note = (
+                f"\n--- Turn {session.turn_count} Reflection ---\n"
+                f"Analysis: {reflection_data.get('reflection', 'N/A')}\n"
+                f"Reasoning: {reflection_data.get('internal_thoughts', 'N/A')}\n"
+                f"Strategy: Updated trait to '{session.persona_trait}'\n"
+            )
+            session.agent_notes += reflection_note
+            
+            # Save updated session
+            await session_manager.save_session(session_id, session)
+            logger.info(f"Agentic reflection saved for session {session_id}")
+            
+    except Exception as e:
+        logger.error(f"Error in background reflection task: {e}")
 
 
 @router.get("/health")
@@ -74,6 +115,7 @@ async def honeypot_test():
 @router.post("/webhook", response_model=WebhookResponse)
 async def webhook(
     request: WebhookRequest,
+    background_tasks: BackgroundTasks,
     api_key: str = Depends(verify_api_key),
     session_manager: SessionManager = Depends(get_session_manager),
 ) -> WebhookResponse:
@@ -212,6 +254,10 @@ async def webhook(
     await session_manager.save_session(request.sessionId, session)
     logger.info(f"Session saved: {request.sessionId}, scam_level: {session.scam_level}")
     
+    # Trigger Zero-Latency Reflection in Background
+    if session.turn_count % 3 == 0:
+        background_tasks.add_task(reflection_task_wrapper, request.sessionId, session_manager)
+    
     # Check if callback should fire (confirmed scam + intel extracted + not already sent)
     if should_send_callback(session):
         logger.info(f"Triggering callback for session {request.sessionId}")
@@ -234,6 +280,7 @@ async def webhook(
 @router.post("/api/honeypot", response_model=WebhookResponse)
 async def api_honeypot(
     request: WebhookRequest,
+    background_tasks: BackgroundTasks,
     api_key: str = Depends(verify_api_key),
     session_manager: SessionManager = Depends(get_session_manager),
 ) -> WebhookResponse:
@@ -241,7 +288,7 @@ async def api_honeypot(
     Hackathon evaluation endpoint.
     Mirrors the webhook behavior and response shape.
     """
-    return await webhook(request, api_key=api_key, session_manager=session_manager)
+    return await webhook(request, background_tasks, api_key=api_key, session_manager=session_manager)
 
 
 # =============================================================================
@@ -346,6 +393,7 @@ class DemoChatRequest(BaseModel):
 @router.post("/api/chat/demo")
 async def demo_chat(
     request: DemoChatRequest,
+    background_tasks: BackgroundTasks,
     session_manager: SessionManager = Depends(get_session_manager),
 ):
     """
@@ -447,6 +495,10 @@ async def demo_chat(
         session.messages.append({"sender": "agent", "text": reply, "timestamp": datetime.utcnow().isoformat()})
         session.current_user_message = webhook_req.message.text
         await session_manager.save_session(request.sessionId, session)
+
+        # Trigger Zero-Latency Reflection in Background
+        if session.turn_count % 3 == 0:
+            background_tasks.add_task(reflection_task_wrapper, request.sessionId, session_manager)
 
         return {"reply": reply, "status": "success", "turn": session.turn_count}
 

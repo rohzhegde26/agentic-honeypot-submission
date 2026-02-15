@@ -75,6 +75,10 @@ def get_model_config():
             "primary": settings.MODEL_PRIMARY,
             "fallback": settings.MODEL_FALLBACK,
         },
+        "reflection": {
+            "primary": settings.MODEL_PRIMARY,
+            "fallback": settings.MODEL_FALLBACK,
+        },
     }
 
 
@@ -130,16 +134,22 @@ def _call_with_retry(
             if is_fireworks:
                 max_tok = 800 if is_thinking else 400
             else:
-                max_tok = 100
+                max_tok = 400
             
+            # Enable JSON mode if requested via task
+            res_format = None
+            if task == "extract" or task == "reflection":
+                res_format = {"type": "json_object"}
+
             completion = client.chat.completions.create(
                 model=model,
                 messages=messages,
-                temperature=0.6,
+                temperature=0.0 if (task == "extract" or task == "reflection") else 0.6,
                 top_p=1.0 if is_fireworks else 0.9,
                 max_tokens=max_tok,
                 stream=False,
-                extra_body=extra_body if extra_body else None
+                extra_body=extra_body if extra_body else None,
+                response_format=res_format
             )
             
             if completion.choices and completion.choices[0].message:

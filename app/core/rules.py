@@ -145,6 +145,34 @@ If nothing found, return empty lists. JSON only, no explanation."""
 
 
 # =============================================================================
+# REFLECTION SYSTEM PROMPT
+# =============================================================================
+
+REFLECTION_SYSTEM_PROMPT: str = """Analyze the progress of the honeypot engagement.
+
+CURRENT STATE:
+- Persona: {persona_name} ({persona_trait})
+- Turn Count: {turn_count}
+- Intel Extracted: {intel_summary}
+
+Analyze the last 2 turns in the messages below. Evaluate:
+1. SCAMMER SENTIMENT: Are they getting bored, aggressive, or suspicious?
+2. ENGAGEMENT QUALITY: Is the persona being too repetitive or too quick to share data?
+3. SELF-CORRECTION: What should the persona change for the next turn?
+
+OUTPUT FORMAT (JSON ONLY):
+IMPORTANT: START YOUR RESPONSE WITH '{{' AND END WITH '}}'. NO PREAMBLE. NO MARKDOWN.
+
+{{
+    "reflection": "A short 1-2 sentence analysis of the state.",
+    "suggested_trait": "New persona trait",
+    "stall_adjustment": -10, 0, or +10,
+    "internal_thoughts": "Strategic reasoning"
+}}
+"""
+
+
+# =============================================================================
 # LLM FALLBACK RESPONSES
 # =============================================================================
 
