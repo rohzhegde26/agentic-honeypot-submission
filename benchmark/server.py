@@ -248,6 +248,15 @@ async def send_turn(req: MessageRequest, token: str = Header(None)):
     
     # Generate responses
     for contestant in game.contestants:
+        # Save original state to restore later and prevent environment pollution
+        original_env = {
+            "BENCHMARK_MODE": os.environ.get("BENCHMARK_MODE"),
+            "NVIDIA_API_KEY_PRIMARY": os.environ.get("NVIDIA_API_KEY_PRIMARY"),
+            "MODEL_PRIMARY": os.environ.get("MODEL_PRIMARY"),
+            "MODEL_FALLBACK": os.environ.get("MODEL_FALLBACK"),
+            "NVIDIA_BASE_URL": os.environ.get("NVIDIA_BASE_URL")
+        }
+        
         t_start = time.perf_counter()
         
         # Override for this specific generation
@@ -273,6 +282,15 @@ async def send_turn(req: MessageRequest, token: str = Header(None)):
             reply = result.get("agent_reply", "[No Response]")
         except Exception as e:
             reply = f"[Error: {e}]"
+        finally:
+            # Restore original environment to prevent pollution of the main application's state
+            for k, v in original_env.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+            get_settings.cache_clear()
+            clear_client_cache()
             
         duration = (time.perf_counter() - t_start) * 1000
         

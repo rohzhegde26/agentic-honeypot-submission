@@ -114,7 +114,8 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
     )
     context_text = f"{recent_user_text} {raw_message}".lower()
     otp_context = any(k in context_text for k in ("otp", "one time password", "sms code", "verification code"))
-    family_context = any(k in context_text for k in ("family", "son", "daughter", "wife", "husband", "beta", "neighbor"))
+    family_context = any(k in context_text for k in ("family", "son", "daughter", "wife", "husband", "beta", "neighbor", "sharma", "uncle", "aunty"))
+    bank_context = any(k in context_text for k in ("bank", "sbi", "hdfc", "kyc", "account", "officer", "manager", "staff", "blocked", "department"))
     detail_request_match = re.search(
         r"(share|send|tell|give|provide|confirm|enter)\s+.*\b(account|upi|ifsc|phone|number|otp|pin|cvv)\b|"
         r"\b(account|upi|ifsc|phone|number|otp|pin|cvv)\b.*(share|send|tell|give|provide|confirm|enter)",
@@ -307,12 +308,23 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
     # Enforce language/topic guardrails even if model drifts.
     if not user_is_speaking_hindi and is_hindi(reply):
         reply = "Sir please explain in simple steps what you want me to do."
-    if not user_is_speaking_hindi and re.search(r"\b(?:namaste|kya|haan|aap|theek|kripya)\b", reply, flags=re.IGNORECASE):
+    
+    # Fix greeting typo tolerance (namaste/amaste) and generic English enforcement
+    if not user_is_speaking_hindi and re.search(r"\b(?:namaste|amaste|kya|haan|aap|theek|kripya)\b", reply, flags=re.IGNORECASE):
         reply = "Sir please explain in simple English what you want me to do."
+    
+    # Context-aware rejections
     if not otp_context and re.search(r"\b(?:otp|one[\s-]?time[\s-]?password|sms code|verification code)\b", reply, flags=re.IGNORECASE):
-        reply = "Sir please tell your staff ID and department first, then explain the issue clearly."
+        if bank_context:
+            reply = "Sir please tell your staff ID and department first, then explain the issue clearly."
+        else:
+            reply = "I don't know who you are... why are you asking for codes? Please tell me which friend/neighbor you are first."
+            
     if not family_context and re.search(r"\b(?:family|son|daughter|wife|husband|beta|neighbor)\b", reply, flags=re.IGNORECASE):
-        reply = "Sir I need your staff ID and official complaint number before I share any details."
+        if bank_context:
+            reply = "Sir I need your staff ID and official complaint number before I share any details."
+        else:
+            reply = "Sir I am confused, who is this calling? Please give me some proof of who you are."
     if not explicit_detail_request:
         leaked_value = any(
             val and val in reply
@@ -324,7 +336,10 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
             flags=re.IGNORECASE,
         )
         if leaked_value or leaked_pattern:
-            reply = "Sir please share your staff ID, department, and official callback number first."
+            if bank_context:
+                reply = "Sir please share your staff ID, department, and official callback number first."
+            else:
+                reply = "I cannot give my details to strangers. Please tell me who you are exactly."
     if turn_count <= 1:
         first_turn_leak = any(
             val and val in reply
@@ -335,7 +350,10 @@ def persona_node(state: AgentState) -> Dict[str, Any]:
             flags=re.IGNORECASE,
         )
         if first_turn_leak:
-            reply = "Sir I am worried. Please tell your staff ID and what exactly the issue is."
+            if bank_context:
+                reply = "Sir I am worried. Please tell your staff ID and what exactly the issue is."
+            else:
+                reply = "I don't know you sir. Please tell me who you are and why you need these details."
     
     # =========================================================================
     # LAYER 9: Canary Leak Detection

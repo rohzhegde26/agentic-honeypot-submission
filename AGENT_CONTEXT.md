@@ -1,6 +1,6 @@
 # 🤖 Agent Context
 
-> Auto-generated on **2026-02-15 11:36 UTC** by `scripts/update_context.py`.  
+> Auto-generated on **2026-02-15 11:50 UTC** by `scripts/update_context.py`.  
 > Read this file to instantly understand the project's current state.
 
 ## Current Configuration
@@ -48,6 +48,8 @@
 
 ## Recent Changes
 
+- `a0731c6 fix: add missing os import in persona_node`
+- `df6b38a fix: bypass semantic cache in benchmark to prevent duplicate replies`
 - `ae4417b fix: benchmark coordination and session id visibility`
 - `b425b50 feat: enable 3-person multi-user benchmark and fix CI failure`
 - `ae3d80b fix: robust api key validation and forced deployment update`
@@ -56,8 +58,6 @@
 - `83c4166 feat: finalize benchmark solo mode and add deep research bundle`
 - `82af867 chore: merge remote changes and final benchmark refinements`
 - `9882024 feat: integrate multi-user fireworks benchmark with solo mode and auto-fill auth`
-- `d140a51 fix: resolve 500 error in api_honeypot and add missing import in reflection.py`
-- `c4c3d23 feat: implement zero-latency background reflection node for self-correction`
 
 ## Key Files Reference
 
