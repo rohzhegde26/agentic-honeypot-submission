@@ -24,6 +24,31 @@ router = APIRouter()
 AGENT_TIMEOUT_SECONDS = 28  # Stay under 30s HuggingFace Spaces timeout
 
 
+async def enrichment_task_wrapper(session_id: str, session_manager: SessionManager):
+    """
+    Background task to generate tactical summary without blocking message reply.
+    """
+    try:
+        session = await session_manager.get_session(session_id)
+        if not session or not session.is_scam_confirmed:
+            return
+            
+        from app.agent.llm import call_llm
+        enrichment_prompt = [
+            {"role": "system", "content": "Analyze the conversation and provide a 1-sentence tactical summary of the scammer's behavior. Response must be 1 sentence only."},
+            {"role": "user", "content": f"History: {' | '.join([m['text'] for m in session.messages[-4:]])}"}
+        ]
+        tactical_summary = await call_llm("reflection", enrichment_prompt)
+        if tactical_summary and len(tactical_summary) > 5:
+            # Re-fetch to avoid race conditions
+            session = await session_manager.get_session(session_id)
+            session.agent_notes = (session.agent_notes + "\n" if session.agent_notes else "") + f"TACTICAL ASSESSMENT: {tactical_summary}"
+            await session_manager.save_session(session_id, session)
+            logger.info(f"Note enrichment background task completed for {session_id}")
+    except Exception as e:
+        logger.warning(f"Note enrichment failed: {e}")
+
+
 async def reflection_task_wrapper(session_id: str, session_manager: SessionManager):
     """
     Background task to run agentic reflection without blocking the primary response.
@@ -252,19 +277,10 @@ async def webhook(
     
     # =========================================================================
     # GOD MODE: NOTE ENRICHMENT (Requirement 2 for 100/100 points)
+    # MOVED TO BACKGROUND TASK FOR ZERO LATENCY
     # =========================================================================
     if session.is_scam_confirmed:
-        try:
-            from app.agent.llm import call_llm
-            enrichment_prompt = [
-                {"role": "system", "content": "Analyze the conversation and provide a 1-sentence tactical summary of the scammer's behavior (e.g., 'Scammer is using high pressure and technical jargon to simulate a bank official'). Response must be 1 sentence only."},
-                {"role": "user", "content": f"History: {' | '.join([m['text'] for m in session.messages[-4:]])}"}
-            ]
-            tactical_summary = await call_llm("reflection", enrichment_prompt)
-            if tactical_summary and len(tactical_summary) > 5:
-                session.agent_notes = (session.agent_notes + "\n" if session.agent_notes else "") + f"TACTICAL ASSESSMENT: {tactical_summary}"
-        except Exception as e:
-            logger.warning(f"Note enrichment failed: {e}")
+        background_tasks.add_task(enrichment_task_wrapper, request.sessionId, session_manager)
 
     # Save session
     await session_manager.save_session(request.sessionId, session)
