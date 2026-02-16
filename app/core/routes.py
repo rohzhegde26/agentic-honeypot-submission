@@ -213,6 +213,7 @@ async def webhook(
                 },
                 turn_count=session.turn_count,
                 existing_intel=session.extracted_intelligence.model_dump() if hasattr(session.extracted_intelligence, 'model_dump') else dict(session.extracted_intelligence),
+                intel_found_at_turn=session.intel_found_at_turn,
                 persona_details=persona_details,
             ),
             timeout=AGENT_TIMEOUT_SECONDS,
@@ -244,6 +245,7 @@ async def webhook(
         # Update termination reason and agent notes
         session.termination_reason = agent_result.get("termination_reason", session.termination_reason)
         session.agent_notes = agent_result.get("agent_notes", session.agent_notes)
+        session.intel_found_at_turn = agent_result.get("intel_found_at_turn", session.intel_found_at_turn)
         
         reply = agent_result.get("agent_reply", "Hello? Who is this?")
         

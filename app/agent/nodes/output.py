@@ -119,7 +119,7 @@ async def output_node(state: AgentState) -> Dict[str, Any]:
         logger.info(f"Intelligence captured at turn {new_turn_count}. Starting 2-turn stall.")
 
     # Termination Logic
-    EXTRA_STALL_TURNS = 1
+    EXTRA_STALL_TURNS = 2
     MAX_TURNS_LIMIT = 25
 
     if current_intel_found_at is not None:

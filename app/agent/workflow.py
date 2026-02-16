@@ -112,6 +112,7 @@ async def run_agent(
     metadata: Dict[str, str],
     turn_count: int = 1,
     existing_intel: Dict = None,
+    intel_found_at_turn: int = None,
     persona_details: Dict = None,  # Existing persona if any
 ) -> Dict[str, Any]:
     """
@@ -180,6 +181,7 @@ async def run_agent(
             "sebiHandles": [],
         },
         "turn_count": turn_count,
+        "intel_found_at_turn": intel_found_at_turn,
         "termination_reason": None,
         "agent_notes": "",
         "agent_reply": "",

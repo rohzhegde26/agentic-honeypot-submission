@@ -43,6 +43,7 @@ class AgentState(TypedDict):
     
     # Control Flow
     turn_count: int
+    intel_found_at_turn: Optional[int]
     termination_reason: Optional[str]  # "max_turns", "extracted_success", "user_quit"
     agent_notes: str
     

@@ -35,6 +35,7 @@ class SessionData(BaseModel):
     
     # Control Flow
     turn_count: int = Field(default=0, description="Number of turns in conversation")
+    intel_found_at_turn: Optional[int] = Field(default=None, description="Turn number when intel was first found")
     termination_reason: Optional[str] = Field(
         default=None,
         description="Why conversation ended: max_turns, extracted_success, user_quit"

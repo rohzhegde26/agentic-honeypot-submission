@@ -260,8 +260,9 @@ class Evaluator:
             
             # Evaluate against timeout threshold
             if elapsed < 25:
-                status = "✓ EXCELLENT (< 25s)"
+                status = "[OK] EXCELLENT (< 25s)"
                 score = 100
+            elif elapsed < 28:
                 status = "[GOOD] (< 28s)"
                 score = 80
             else:
