@@ -262,11 +262,10 @@ class Evaluator:
             if elapsed < 25:
                 status = "✓ EXCELLENT (< 25s)"
                 score = 100
-            elif elapsed < 28:
-                status = "✓ GOOD (< 28s)"
+                status = "[GOOD] (< 28s)"
                 score = 80
             else:
-                status = "⚠ MARGINAL (> 28s)"
+                status = "[MARGINAL] (> 28s)"
                 score = 60
             
             print(f"Status: {status}")
@@ -279,7 +278,7 @@ class Evaluator:
             return score
             
         except asyncio.TimeoutError:
-            print("✗ TIMEOUT (> 30s)")
+            print("[TIMEOUT] (> 30s)")
             self.results["response_time"] = {
                 "elapsed": 30.0,
                 "score": 0
