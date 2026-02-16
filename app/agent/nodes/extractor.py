@@ -25,11 +25,19 @@ from app.core.rules import (
     EMAIL_PATTERN,
 )
 
+def _clean_item(text: str) -> str:
+    """Strip trailing punctuation used in sentences (.,!?;:)]})."""
+    if not text:
+        return text
+    # Common trailing noise in chat messages
+    return text.rstrip('.,!?;:)]}').strip()
+
 
 def _extract_upi_ids(text: str) -> List[str]:
     """Extract UPI IDs from text using regex."""
     matches = UPI_PATTERN.findall(text)
-    return [m for m in matches if m.split('@')[1].lower() not in EMAIL_DOMAINS_TO_EXCLUDE]
+    upis = [m for m in matches if m.split('@')[1].lower() not in EMAIL_DOMAINS_TO_EXCLUDE]
+    return [_clean_item(u) for u in upis]
 
 
 def _extract_phone_numbers(text: str) -> List[str]:
@@ -47,12 +55,14 @@ def _extract_phone_numbers(text: str) -> List[str]:
 
 def _extract_links(text: str) -> List[str]:
     """Extract phishing links from text using regex."""
-    return LINK_PATTERN.findall(text)
+    matches = LINK_PATTERN.findall(text)
+    return [_clean_item(m) for m in matches]
 
 
 def _extract_emails(text: str) -> List[str]:
     """Extract email addresses from text using regex."""
-    return EMAIL_PATTERN.findall(text)
+    matches = EMAIL_PATTERN.findall(text)
+    return [_clean_item(m) for m in matches]
 
 
 def _extract_bank_accounts(text: str) -> List[str]:
@@ -128,19 +138,19 @@ def _parse_llm_extraction(response: str) -> Dict[str, List[str]]:
         data = json.loads(response.strip())
         
         if isinstance(data.get("upiIds"), list):
-            result["upiIds"] = [str(x) for x in data["upiIds"] if x]
+            result["upiIds"] = [_clean_item(str(x)) for x in data["upiIds"] if x]
         if isinstance(data.get("phoneNumbers"), list):
-            result["phoneNumbers"] = [str(x) for x in data["phoneNumbers"] if x]
+            result["phoneNumbers"] = [_clean_item(str(x)) for x in data["phoneNumbers"] if x]
         if isinstance(data.get("phishingLinks"), list):
-            result["phishingLinks"] = [str(x) for x in data["phishingLinks"] if x]
+            result["phishingLinks"] = [_clean_item(str(x)) for x in data["phishingLinks"] if x]
         if isinstance(data.get("bankAccounts"), list):
-            result["bankAccounts"] = [str(x) for x in data["bankAccounts"] if x]
+            result["bankAccounts"] = [_clean_item(str(x)) for x in data["bankAccounts"] if x]
         if isinstance(data.get("scammerNames"), list):
-            result["scammerNames"] = [str(x) for x in data["scammerNames"] if x]
+            result["scammerNames"] = [_clean_item(str(x)) for x in data["scammerNames"] if x]
         if isinstance(data.get("staffIds"), list):
-            result["staffIds"] = [str(x) for x in data["staffIds"] if x]
+            result["staffIds"] = [_clean_item(str(x)) for x in data["staffIds"] if x]
         if isinstance(data.get("emailAddresses"), list):
-            result["emailAddresses"] = [str(x) for x in data["emailAddresses"] if x]
+            result["emailAddresses"] = [_clean_item(str(x)) for x in data["emailAddresses"] if x]
             
     except (json.JSONDecodeError, AttributeError):
         pass
@@ -209,16 +219,29 @@ async def extractor_node(state: AgentState) -> Dict[str, Any]:
         llm_staff = llm_data["staffIds"]
         llm_emails = llm_data.get("emailAddresses", [])
     
-    # Step 3: Merge
-    all_upi = list(set(regex_upi) | set(llm_upi))
-    all_phones = list(set(regex_phones) | set(llm_phones))
-    all_links = list(set(regex_links) | set(llm_links))
-    all_accounts = list(set(regex_accounts) | set(llm_accounts))
-    all_emails = list(set(regex_emails) | set(llm_emails))
+    # Step 3: Identity Filtering (Podium Hardening)
+    # Filter out our own fake bait data so it's not reported as scammer intelligence
+    p_name = state.get("persona_name", "").lower()
+    fake_vals = {
+        state.get("fake_phone", ""),
+        state.get("fake_upi", ""),
+        state.get("fake_bank_account", ""),
+        state.get("fake_ifsc", ""),
+        # Also filter out simple derivations
+        p_name
+    }
+    fake_vals = {str(v).lower().strip() for v in fake_vals if v}
+
+    all_upi = [u for u in (set(regex_upi) | set(llm_upi)) if u.lower().strip() not in fake_vals]
+    all_phones = [p for p in (set(regex_phones) | set(llm_phones)) if p.lower().strip() not in fake_vals]
+    all_links = [l for l in (set(regex_links) | set(llm_links)) if l.lower().strip() not in fake_vals]
+    all_accounts = [a for a in (set(regex_accounts) | set(llm_accounts)) if a.lower().strip() not in fake_vals]
+    all_emails = [e for e in (set(regex_emails) | set(llm_emails)) if e.lower().strip() not in fake_vals]
+    
     all_keywords = list(set(regex_keywords))
-    found_names = list(set(llm_names))
-    found_staff = list(set(regex_staff) | set(llm_staff))
-    found_ifsc = list(set(regex_ifsc))
+    found_names = [n for n in set(llm_names) if n.lower().strip() not in fake_vals and len(n) > 2]
+    found_staff = [s for s in (set(regex_staff) | set(llm_staff)) if s.lower().strip() not in fake_vals]
+    found_ifsc = [i for i in set(regex_ifsc) if i.lower().strip() not in fake_vals]
     found_pan = list(set(regex_pan))
     found_sebi = list(set(regex_sebi))
     

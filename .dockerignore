@@ -1,0 +1,16 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.vscode
+.git
+.env
+data/sessions
+*.log
+evaluation_results.json
+tests/
+scam datasets/
+verify_*.py
+evaluate.py
+chat_debug.py

@@ -22,22 +22,24 @@ def normalize_obfuscated_numbers(text: str) -> str:
         'paanch': '5', 'chey': '6', 'saat': '7', 'aath': '8', 'nau': '9'
     }
     
+    # 1. Letter Swaps (Common obfuscation: O for 0, l for 1)
     normalized = text.lower()
+    normalized = normalized.replace('o', '0').replace('l', '1')
     
-    # 1. Replace written words with digits
+    # 2. Replace written words with digits
     for word, digit in word_to_digit.items():
         # Use regex to replace whole words only
         normalized = re.sub(fr'\b{word}\b', digit, normalized)
         
-    # 2. Handle digit strings with spaces (e.g. "9 8 7 6 5 4 3 2 1 0")
-    # We look for sequences of at least 3 digits separated by spaces/dashes
-    def merge_spaced_digits(match):
-        return match.group(0).replace(" ", "").replace("-", "")
+    # 3. Mixed Noise Handling (Remove dots, commas, brackets between digits)
+    # Example: 9.8(7)6 -> 9876
+    # We look for digits separated by 1-2 non-alphanumeric characters or spaces
+    noise_pattern = re.compile(r'(?<=\d)[.\s,()\[\]\-_]{1,2}(?=\d)')
+    normalized = noise_pattern.sub("", normalized)
     
-    # This regex finds digits or spaces between digits
-    # It attempts to find cases like "9 8 7" and turn them into "987"
-    # Match sequences like digit and space/dash followed by another digit, repeated
+    # 4. Handle digit strings with spaces (e.g. "9 8 7 6 5 4 3 2 1 0")
+    # Matches remaining sequences of digits separated by spaces
     spaced_digit_pattern = re.compile(r'\b\d(?:[\s-]+\d)+\b')
-    normalized = spaced_digit_pattern.sub(merge_spaced_digits, normalized)
+    normalized = spaced_digit_pattern.sub(lambda m: m.group(0).replace(" ", "").replace("-", ""), normalized)
     
     return normalized

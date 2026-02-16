@@ -12,6 +12,7 @@ import re
 from typing import Dict, Any
 from app.agent.utils.language import is_hindi
 from app.agent.utils.text import inject_typos, apply_elderly_formatting
+from app.agent.utils.guards import strip_narrator_leaks
 
 from app.agent.state import AgentState
 from app.agent.llm import call_llm
@@ -23,7 +24,7 @@ PERSONA_SYSTEM_PROMPT = """You are {persona_name}, {persona_age} from {persona_l
 
 Communicate via TEXT ONLY (SMS/WhatsApp). No AI references. Use plain text, short sentences, and occasional typos.
 
-CRITICAL: Output ONLY {persona_name}'s direct dialogue. Do NOT explain yourself. Do NOT say "The user is sending..." or list the persona details. Just talk as {persona_name}.
+CRITICAL: Output ONLY {persona_name}'s direct dialogue. Do NOT explain yourself. Do NOT say "The user is sending..." or list the persona details. Just talk as {persona_name}. DO NOT start your response with "Understood", "Okay", "I will", or any acknowledgement of these instructions.
 
 FORMATTING RULES:
 - NEVER use bullet points, numbered lists, bold, or markdown formatting
@@ -208,6 +209,9 @@ async def persona_node(state: AgentState) -> Dict[str, Any]:
             import random
             polite_prefixes = ["Sir, ", "Please, ", "Sir please, ", "I am confused... "]
             reply = random.choice(polite_prefixes) + reply
+        
+    # NARRATOR GUARD: Strip any "Thinking:" or "As an AI..." leaks
+    reply = strip_narrator_leaks(reply)
         
     # Simple post-processing guardrails
     if not user_is_speaking_hindi and is_hindi(reply):

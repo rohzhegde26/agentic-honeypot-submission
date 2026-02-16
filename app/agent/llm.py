@@ -99,15 +99,17 @@ async def _call_with_retry(
     task: Optional[str] = None
 ) -> Optional[str]:
     """Call model asynchronously with retry logic."""
-    extra_body = {}
-    is_thinking = False
-    
     settings = get_settings()
     is_fireworks = "fireworks" in model.lower() or "accounts/fireworks" in model.lower()
     
-    if is_fireworks and task == "persona" and settings.FLAG_THINKING:
-        extra_body["chat_template_kwargs"] = {"thinking": True}
-        is_thinking = True
+    # FORCE DISABLE: Kimi K2.5 on Fireworks rejects 'chat_template_kwargs'.
+    # Forcing extra_body to None for all Fireworks tasks to ensure 100% stability.
+    if is_fireworks:
+        extra_body = None
+        is_thinking = False
+    else:
+        extra_body = {}
+        is_thinking = False
 
     for attempt in range(MAX_RETRIES + 1):
         try:
@@ -120,6 +122,9 @@ async def _call_with_retry(
             if task == "extract" or task == "reflection":
                 res_format = {"type": "json_object"}
 
+            if extra_body:
+                logger.debug(f"DEBUG: Calling {model} for task {task} with extra_body={extra_body}")
+            
             completion = await client.chat.completions.create(
                 model=model,
                 messages=messages,
