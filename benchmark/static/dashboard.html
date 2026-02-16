@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber War Room | Agentic Honeypot Telemetry</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #050a0f;
+            --accent-color: #00f2ff;
+            --danger-color: #ff3e3e;
+            --success-color: #22c55e;
+            --panel-bg: rgba(10, 25, 41, 0.7);
+            --border-glow: 0 0 10px rgba(0, 242, 255, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Roboto Mono', monospace;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(circle at 50% 50%, rgba(0, 242, 255, 0.05) 0%, transparent 70%),
+                linear-gradient(rgba(0, 242, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 242, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        header {
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 242, 255, 0.2);
+            box-shadow: var(--border-glow);
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--accent-color);
+            letter-spacing: 2px;
+            font-size: 1.5rem;
+            text-transform: uppercase;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.8rem;
+            color: var(--success-color);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--success-color);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--success-color);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.4;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.4;
+            }
+        }
+
+        main {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+            padding: 20px;
+            height: calc(100vh - 80px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--panel-bg);
+            border: 1px solid rgba(0, 242, 255, 0.1);
+            padding: 20px;
+            border-radius: 4px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-family: 'Orbitron', sans-serif;
+            color: var(--accent-color);
+            margin: 10px 0;
+            text-shadow: 0 0 15px rgba(0, 242, 255, 0.5);
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+        }
+
+        .event-hub {
+            background: var(--panel-bg);
+            border: 1px solid rgba(0, 242, 255, 0.1);
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .hub-header {
+            padding: 15px;
+            background: rgba(0, 242, 255, 0.05);
+            border-bottom: 1px solid rgba(0, 242, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        #event-list {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+        }
+
+        .event-item {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            animation: slideIn 0.3s ease-out;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .event-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: var(--accent-color);
+        }
+
+        .event-msg {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .event-intel {
+            color: var(--success-color);
+            font-weight: bold;
+        }
+
+        .session-panel {
+            background: var(--panel-bg);
+            border: 1px solid rgba(0, 242, 255, 0.1);
+            border-radius: 4px;
+            padding: 20px;
+        }
+
+        .confidence-meter {
+            position: relative;
+            height: 150px;
+            width: 150px;
+            margin: 20px auto;
+        }
+
+        .meter-svg {
+            transform: rotate(-90deg);
+        }
+
+        .meter-bg {
+            stroke: rgba(255, 255, 255, 0.1);
+            stroke-width: 8;
+            fill: none;
+        }
+
+        .meter-fill {
+            stroke: var(--accent-color);
+            stroke-width: 8;
+            fill: none;
+            stroke-dasharray: 440;
+            stroke-dashoffset: 440;
+            transition: stroke-dashoffset 1s ease-out;
+            stroke-linecap: round;
+        }
+
+        .meter-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .meter-val {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: var(--accent-color);
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 242, 255, 0.2);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>War Room Telemetry v2.5</h1>
+        <div class="status-badge">
+            <div class="status-dot"></div>
+            LIVE INTERCEPTION ACTIVE
+        </div>
+    </header>
+
+    <main>
+        <div class="dashboard-core">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Intel Caught</div>
+                    <div id="stat-intel" class="stat-value">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Active Engagements</div>
+                    <div id="stat-active" class="stat-value">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Messages</div>
+                    <div id="stat-msg" class="stat-value">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Honeypot Success</div>
+                    <div id="stat-success" class="stat-value">0</div>
+                </div>
+            </div>
+
+            <div class="event-hub">
+                <div class="hub-header">
+                    <span>LIVE INTERCEPTION FEED</span>
+                    <span id="feed-status" style="color: var(--accent-color);">WAITING FOR EVENTS...</span>
+                </div>
+                <div id="event-list">
+                    <!-- Events will appear here -->
+                </div>
+            </div>
+        </div>
+
+        <aside class="sidebar">
+            <div class="session-panel">
+                <h2 style="font-size: 0.9rem; letter-spacing: 1px; margin-bottom: 20px;">SYSTEM HEALTH</h2>
+                <div class="confidence-meter">
+                    <svg class="meter-svg" width="150" height="150">
+                        <circle class="meter-bg" cx="75" cy="75" r="70"></circle>
+                        <circle id="conf-meter" class="meter-fill" cx="75" cy="75" r="70"></circle>
+                    </svg>
+                    <div class="meter-text">
+                        <div id="conf-val" class="meter-val">0%</div>
+                        <div style="font-size: 0.5rem;">SCAM LEVEL</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <div style="font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-bottom: 10px;">EXTRACTION YIELD
+                    </div>
+                    <div id="intel-breakdown" style="font-size: 0.8rem; line-height: 1.8;">
+                        <div>UPI IDs: <span style="color: var(--accent-color)">0</span></div>
+                        <div>Bank Accounts: <span style="color: var(--accent-color)">0</span></div>
+                        <div>Phishing Links: <span style="color: var(--accent-color)">0</span></div>
+                        <div>Phone Numbers: <span style="color: var(--accent-color)">0</span></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <script>
+        const eventList = document.getElementById('event-list');
+        const stats = {
+            intel: document.getElementById('stat-intel'),
+            active: document.getElementById('stat-active'),
+            msg: document.getElementById('stat-msg'),
+            success: document.getElementById('stat-success'),
+            confVal: document.getElementById('conf-val'),
+            confMeter: document.getElementById('conf-meter')
+        };
+
+        const eventSource = new EventSource('/api/telemetry');
+
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            console.log("Telemetry Event:", data);
+
+            if (data.type === 'init' || data.type === 'turn_update' || data.type === 'session_terminated') {
+                updateGlobalStats(data.global_stats);
+            }
+
+            if (data.type === 'turn_update') {
+                addEvent(data);
+            }
+        };
+
+        function updateGlobalStats(s) {
+            if (!s) return;
+            stats.active.innerText = s.active_sessions;
+            stats.msg.innerText = s.total_messages;
+
+            const totalIntel = s.total_upi_caught + s.total_banks_caught + s.total_links_caught + s.total_phones_caught;
+            stats.intel.innerText = totalIntel;
+            stats.success.innerText = s.total_sessions;
+
+            // Update Confidence Gauge
+            const conf = Math.round(s.avg_scam_confidence * 100);
+            stats.confVal.innerText = conf + '%';
+            const offset = 440 - (440 * (s.avg_scam_confidence));
+            stats.confMeter.style.strokeDashoffset = offset;
+
+            // Update Breakdown
+            const breakdown = document.getElementById('intel-breakdown');
+            breakdown.innerHTML = `
+                <div>UPI IDs: <span style="color: #00f2ff">${s.total_upi_caught}</span></div>
+                <div>Bank Accounts: <span style="color: #00f2ff">${s.total_banks_caught}</span></div>
+                <div>Phishing Links: <span style="color: #00f2ff">${s.total_links_caught}</span></div>
+                <div>Phone Numbers: <span style="color: #00f2ff">${s.total_phones_caught}</span></div>
+            `;
+        }
+
+        function addEvent(data) {
+            const item = document.createElement('div');
+            item.className = 'event-item';
+
+            const time = new Date().toLocaleTimeString();
+
+            item.innerHTML = `
+                <div class="event-meta">
+                    <span>${time} | SESSION: ${data.session_id.substring(0, 8)}...</span>
+                    <span>LEVEL: ${data.scam_level.toUpperCase()}</span>
+                </div>
+                <div class="event-msg">" ${data.agent_reply} "</div>
+                <div class="event-intel">${data.intel_summary}</div>
+            `;
+
+            eventList.insertBefore(item, eventList.firstChild);
+            if (eventList.childElementCount > 15) {
+                eventList.removeChild(eventList.lastChild);
+            }
+
+            document.getElementById('feed-status').innerText = 'LIVE FEED SYNCED';
+        }
+
+        eventSource.onerror = () => {
+            document.getElementById('feed-status').innerText = 'RECONNECTING...';
+            document.getElementById('feed-status').style.color = '#ff3e3e';
+        };
+    </script>
+</body>
+
+</html>

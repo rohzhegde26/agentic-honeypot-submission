@@ -1,0 +1,67 @@
+{
+  "scam_detection": [
+    {
+      "scenario": "OTP Phishing",
+      "correct": true
+    },
+    {
+      "scenario": "UPI Scam",
+      "correct": true
+    },
+    {
+      "scenario": "Phishing Link",
+      "correct": true
+    },
+    {
+      "scenario": "Safe Message",
+      "correct": true
+    },
+    {
+      "scenario": "Job Scam",
+      "correct": true
+    }
+  ],
+  "intelligence_extraction": [
+    {
+      "scenario": "OTP Phishing",
+      "extracted": 6,
+      "expected": 3
+    },
+    {
+      "scenario": "UPI Scam",
+      "extracted": 2,
+      "expected": 1
+    },
+    {
+      "scenario": "Phishing Link",
+      "extracted": 3,
+      "expected": 3
+    },
+    {
+      "scenario": "Safe Message",
+      "extracted": 0,
+      "expected": 0
+    },
+    {
+      "scenario": "Job Scam",
+      "extracted": 5,
+      "expected": 4
+    }
+  ],
+  "persona_authenticity": {
+    "reply": "OTP? You mean the SMS code? But the TV news said never share OTP with anyone. Are you really from the bank?",
+    "checks": {
+      "No AI references": true,
+      "Plain text (no markdown)": true,
+      "Short reply (SMS-like)": true,
+      "Contains confusion/politeness": false,
+      "No immediate data leak": true
+    },
+    "score": 80.0
+  },
+  "response_time": {
+    "elapsed": 0.024579763412475586,
+    "score": 80
+  },
+  "overall_score": 92.0
+}
