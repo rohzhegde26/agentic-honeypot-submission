@@ -85,13 +85,13 @@ class Evaluator:
                 "scam_level": "safe",
             }
             
-            result = detector_node(state)
+            result = await detector_node(state)
             detected_level = result.get("scam_level", "safe")
             
             is_correct = detected_level == scenario["expected_scam_level"]
             correct += 1 if is_correct else 0
             
-            status = "✓" if is_correct else "✗"
+            status = "[OK]" if is_correct else "[FAIL]"
             print(f"{status} {scenario['name']}: Expected '{scenario['expected_scam_level']}', Got '{detected_level}'")
             
             self.results["scam_detection"].append({
@@ -103,7 +103,7 @@ class Evaluator:
         print(f"\nDetection Accuracy: {accuracy:.1f}% ({correct}/{total})")
         return accuracy
     
-    def test_intelligence_extraction(self):
+    async def test_intelligence_extraction(self):
         """Test intelligence extraction capabilities."""
         print("\n" + "="*70)
         print("TEST 2: INTELLIGENCE EXTRACTION")
@@ -126,7 +126,7 @@ class Evaluator:
                 "agent_notes": "",
             }
             
-            result = extractor_node(state)
+            result = await extractor_node(state)
             intel = result["extracted_intelligence"]
             
             # Count extracted items
@@ -198,7 +198,7 @@ class Evaluator:
             "locale": "IN",
         }
         
-        result = persona_node(state)
+        result = await persona_node(state)
         reply = result.get("agent_reply", "")
         
         print(f"\nScammer: {test_message}")
@@ -215,7 +215,7 @@ class Evaluator:
         
         print("\nAuthenticity Checks:")
         for check, passed in checks.items():
-            status = "✓" if passed else "✗"
+            status = "[OK]" if passed else "[FAIL]"
             print(f"  {status} {check}")
         
         authenticity_score = (sum(checks.values()) / len(checks)) * 100
