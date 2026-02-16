@@ -56,7 +56,7 @@ def _generate_agent_notes(state: AgentState) -> str:
     return f"Scammer used: {', '.join(tactics)}."
 
 
-def output_node(state: AgentState) -> Dict[str, Any]:
+async def output_node(state: AgentState) -> Dict[str, Any]:
     """
     Output node: Finalizes response, updates turn count, sets termination reason.
     
