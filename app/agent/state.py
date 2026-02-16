@@ -13,6 +13,12 @@ class ExtractedData(TypedDict):
     phishingLinks: List[str]
     phoneNumbers: List[str]
     suspiciousKeywords: List[str]
+    scammerNames: List[str]
+    staffIds: List[str]
+    emailAddresses: List[str]
+    ifscCodes: List[str]
+    panNumbers: List[str]
+    sebiHandles: List[str]
 
 
 class AgentState(TypedDict):

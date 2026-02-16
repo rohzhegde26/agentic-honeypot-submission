@@ -14,6 +14,11 @@ class ExtractedIntelligence(BaseModel):
     phoneNumbers: List[str] = Field(default_factory=list, description="Phone numbers")
     emailAddresses: List[str] = Field(default_factory=list, description="Email addresses")
     suspiciousKeywords: List[str] = Field(default_factory=list, description="Detected keywords")
+    scammerNames: List[str] = Field(default_factory=list, description="Extracted scammer names")
+    staffIds: List[str] = Field(default_factory=list, description="Extracted staff/employee IDs")
+    ifscCodes: List[str] = Field(default_factory=list, description="Bank IFSC codes")
+    panNumbers: List[str] = Field(default_factory=list, description="Indian PAN numbers")
+    sebiHandles: List[str] = Field(default_factory=list, description="SEBI @valid handles")
 
 
 class CallbackPayload(BaseModel):

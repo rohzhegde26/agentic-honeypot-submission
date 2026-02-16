@@ -133,11 +133,8 @@ LINK_PATTERN: Pattern = re.compile(r'https?://[^\s<>"\']+|www\.[^\s<>"\']+')
 # Email address pattern
 EMAIL_PATTERN: Pattern = re.compile(r'\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b')
 
-# Bank account pattern (9-18 digits, with context awareness)
-# Must be preceded by account-related words to reduce false positives
-BANK_ACCOUNT_CONTEXT_WORDS: List[str] = [
-    "account", "ac", "a/c", "no", "number", "transfer", "send", "credit", "debit"
-]
+# Bank account pattern (9-18 digits)
+# 2025 Standard: Strictly match 9-18 digits. De-obfuscation layer will handle noise.
 BANK_ACCOUNT_PATTERN: Pattern = re.compile(r'\b\d{9,18}\b')
 
 
@@ -145,13 +142,15 @@ BANK_ACCOUNT_PATTERN: Pattern = re.compile(r'\b\d{9,18}\b')
 STAFF_ID_PATTERN: Pattern = re.compile(r'(?:staff\s*id|employee\s*id|id\s*no)[\s:]*([A-Z0-9-]{3,10})', re.IGNORECASE)
 
 # IFSC Code pattern (4 uppercase + 0 + 6 alphanumeric) - Bank branch identifier
-IFSC_PATTERN: Pattern = re.compile(r'\b[A-Z]{4}0[A-Z0-9]{6}\b')
+# 2025 Standard: Strict check (5th char must be 0)
+IFSC_PATTERN: Pattern = re.compile(r'\b[A-Z]{4}0[A-Z0-9]{6}\b', re.IGNORECASE)
 
 # PAN number pattern (5 uppercase + 4 digits + 1 uppercase) - Tax ID
 PAN_PATTERN: Pattern = re.compile(r'\b[A-Z]{5}\d{4}[A-Z]\b')
 
 # SEBI @valid handle pattern (investment/broker scam identifiers)
-SEBI_HANDLE_PATTERN: Pattern = re.compile(r'@valid[a-zA-Z0-9_-]+|@[a-zA-Z0-9_-]+(?:broker|invest|trade|fund)', re.IGNORECASE)
+# 2025 Standard: Detects xyz.brk@validicici style handles
+SEBI_HANDLE_PATTERN: Pattern = re.compile(r'[a-zA-Z0-9._-]+@valid[a-zA-Z0-9_-]*\b|@[a-zA-Z0-9._-]*(?:broker|invest|trade|fund)[a-zA-Z0-9_-]*\b', re.IGNORECASE)
 
 
 # =============================================================================

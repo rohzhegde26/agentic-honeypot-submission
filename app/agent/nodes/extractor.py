@@ -11,14 +11,13 @@ from typing import Dict, Any, List
 
 from app.agent.state import AgentState
 
-logger = logging.getLogger(__name__)
+from app.agent.utils.sanitizers import normalize_obfuscated_numbers
 from app.agent.llm import call_llm
 from app.core.rules import (
     UPI_PATTERN,
     PHONE_PATTERN,
     LINK_PATTERN,
     BANK_ACCOUNT_PATTERN,
-    BANK_ACCOUNT_CONTEXT_WORDS,
     EMAIL_DOMAINS_TO_EXCLUDE,
     SUSPECTED_SCAM_KEYWORDS,
     EXTRACT_SYSTEM_PROMPT,
@@ -94,10 +93,7 @@ def _extract_sebi_handles(text: str) -> List[str]:
     return SEBI_HANDLE_PATTERN.findall(text)
 
 
-def _normalize_spaced_digits(text: str) -> str:
-    """Normalize spaced digits: '9 8 7 6 5 4 3 2 1 0' → '9876543210'."""
-    # Collapse single-digit sequences separated by spaces
-    return re.sub(r'(\d)\s+(?=\d)', r'\1', text)
+# Local normalization replaced by app.agent.utils.sanitizers.normalize_obfuscated_numbers
 
 
 def _extract_suspicious_keywords(text: str) -> List[str]:
@@ -163,8 +159,8 @@ async def extractor_node(state: AgentState) -> Dict[str, Any]:
     message = state["current_user_message"]
     messages = state.get("messages", [])
     
-    # PREPROCESSING: Normalize spaced digits
-    message_normalized = _normalize_spaced_digits(message)
+    # PREPROCESSING: 2025 Standard De-obfuscation
+    message_normalized = normalize_obfuscated_numbers(message)
     
     # Step 1: Regex extraction (deterministic)
     regex_upi = _extract_upi_ids(message_normalized)

@@ -6,8 +6,10 @@ import logging
 import asyncio
 import time
 from fastapi import APIRouter, Depends, Request, Header, BackgroundTasks
+from fastapi.responses import JSONResponse, HTMLResponse
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict, Any
+from sse_starlette.sse import EventSourceResponse
 
 from app.schemas import WebhookRequest, WebhookResponse, SessionData, MetadataInput
 from app.services import get_session_manager, SessionManager
@@ -16,6 +18,7 @@ from app.services.timing import record_session_timing, get_recent_timings
 from app.config import get_settings
 from app.core.security import verify_api_key
 from app.agent import run_agent
+from app.core.telemetry import telemetry_manager
 
 logger = logging.getLogger(__name__)
 
@@ -592,9 +595,36 @@ async def demo_chat(
 @router.get("/gui")
 async def gui_dashboard():
     """Serve the interactive GUI dashboard."""
-    from fastapi.responses import HTMLResponse
     from app.core.gui import GUI_HTML
     return HTMLResponse(content=GUI_HTML)
+
+
+# =============================================================================
+# Visual War Room Telemetry
+# =============================================================================
+
+@router.get("/api/telemetry")
+async def telemetry_stream():
+    """Server-Sent Events endpoint for real-time telemetry."""
+    return EventSourceResponse(telemetry_manager.subscribe())
+
+@router.get("/war-room")
+async def war_room_dashboard():
+    """Serve the Visual War Room dashboard."""
+    import os
+    dashboard_path = os.path.join("benchmark", "static", "dashboard.html")
+    if not os.path.exists(dashboard_path):
+        return HTMLResponse("Dashboard file not found (benchmark/static/dashboard.html)", status_code=404)
+    
+    with open(dashboard_path, "r", encoding="utf-8") as f:
+        html = f.read()
+    return HTMLResponse(html)
+
+@router.get("/api/stats")
+async def get_global_stats():
+    """Get summarized global telemetry stats."""
+    from dataclasses import asdict
+    return asdict(telemetry_manager.stats)
 
 
 

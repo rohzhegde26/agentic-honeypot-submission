@@ -300,11 +300,11 @@ class Evaluator:
             "Persona node exists": os.path.exists("app/agent/nodes/persona.py"),
             "Output node exists": os.path.exists("app/agent/nodes/output.py"),
             "API routes defined": os.path.exists("app/core/routes.py"),
-            "Callback service exists": os.path.exists("app/services/callback.py"),
+            "Callback service exists": os.path.exists("app/services/callback_service.py"),
         }
         
         for check, passed in checks.items():
-            status = "✓" if passed else "✗"
+            status = "[OK]" if passed else "[FAIL]"
             print(f"  {status} {check}")
         
         quality_score = (sum(checks.values()) / len(checks)) * 100
@@ -321,7 +321,7 @@ class Evaluator:
         
         # Run all tests
         detection_score = await self.test_scam_detection()
-        extraction_score = self.test_intelligence_extraction()
+        extraction_score = await self.test_intelligence_extraction()
         authenticity_score = await self.test_persona_authenticity()
         latency_score = await self.test_response_time()
         quality_score = self.test_code_quality()

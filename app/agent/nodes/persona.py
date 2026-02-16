@@ -14,13 +14,7 @@ from app.agent.utils.language import is_hindi
 
 from app.agent.state import AgentState
 from app.agent.llm import call_llm
-from app.agent.utils.sanitizers import (
-    detect_injection_attempt,
-    sanitize_input,
-    sanitize_output,
-    check_canary_leak,
-    generate_canary,
-)
+# Sanitization removed as per user request
 
 logger = logging.getLogger(__name__)
 
@@ -91,34 +85,10 @@ async def persona_node(state: AgentState) -> Dict[str, Any]:
                 "timing_log": [{"node": "persona", "duration_ms": duration_ms, "llm_ms": 0.0}],
             }
     
-    # LAYER 1: Input Sanitization
-    message = sanitize_input(raw_message)
+    # LAYER 1: Basic Input Cleaning
+    message = raw_message.strip()
     
-    # LAYER 2: Attack Pattern Detection
-    is_attack, attack_type = detect_injection_attempt(message)
-    if is_attack:
-        rejection_responses = [
-            "Sir I am very confused... I just need help with my bank account",
-            "Sir what is this? I am just a simple person trying to fix my account issue",
-        ]
-        reply = rejection_responses[turn_count % len(rejection_responses)]
-        return {
-            "agent_reply": reply,
-            "messages": [{"sender": "agent", "text": reply}],
-            "agent_notes": f"BLOCKED: {attack_type} attack detected",
-            "timing_log": [{"node": "persona", "duration_ms": 0.0, "metadata": {"blocked": attack_type}}],
-        }
-    
-    # LAYER 2.5: Guardrail LLM Check (ASYNC)
-    from app.agent.llm import check_guardrail
-    guard_result = await check_guardrail(message)
-    if not guard_result["safe"]:
-        return {
-            "agent_reply": "...", 
-            "messages": [{"sender": "agent", "text": "..."}],
-            "agent_notes": f"BLOCKED: Guardrail ({guard_result['risk']})",
-            "timing_log": [{"node": "persona", "duration_ms": 0.0, "metadata": {"blocked": "guardrail"}}],
-        }
+    # SECURITY: Layer 2/2.5 Disabled
         
     # Get persona details
     p_name = state.get("persona_name", "Ramesh Kumar")
@@ -191,7 +161,7 @@ async def persona_node(state: AgentState) -> Dict[str, Any]:
         else:
             active_baiting_instruction = "\nPHASE: LEAK. Ask them to send an official portal link, website, or photo of their company ID card to verify legitimacy."
 
-    canary = generate_canary()
+    canary = ""  # Sanitizer disabled
     user_is_speaking_hindi = is_hindi(raw_message)
     language_instruction = "LANGUAGE: Respond in Hindi (Devanagari script)." if user_is_speaking_hindi else "LANGUAGE: Respond in English only (ASCII text)."
 
@@ -209,8 +179,7 @@ async def persona_node(state: AgentState) -> Dict[str, Any]:
         fake_ifsc=fake_ifsc,
         phase_instruction=phase_instruction + active_baiting_instruction,
         language_instruction=language_instruction,
-        topic_instruction="Do not mention OTP unless they did first.",
-        canary_token=canary
+        topic_instruction="Do not mention OTP unless they did first."
     )
 
     # Prepare historical context (last 6 messages)
@@ -225,16 +194,12 @@ async def persona_node(state: AgentState) -> Dict[str, Any]:
     raw_reply = await call_llm("persona", llm_messages)
     llm_duration_ms = round((time.perf_counter() - t_llm_start) * 1000, 1)
 
-    # Output Sanitization & Guardrails
-    reply = sanitize_output(raw_reply)
+    # Output Sanitization Disabled
+    reply = raw_reply.strip()
     
     # Simple post-processing guardrails
     if not user_is_speaking_hindi and is_hindi(reply):
         reply = "Sir please explain in simple English what you want me to do."
-    
-    if check_canary_leak(reply, canary):
-        logger.error("CANARY LEAK DETECTED")
-        reply = "Sir I am confused... I just want to fix my bank issue."
         
     duration_ms = round((time.perf_counter() - t_start) * 1000, 1)
     

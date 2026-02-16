@@ -11,6 +11,7 @@ redis>=5.0.0
 
 # Performance
 orjson>=3.9.0
+sse-starlette>=2.0.0
 
 # Environment
 python-dotenv>=1.0.0

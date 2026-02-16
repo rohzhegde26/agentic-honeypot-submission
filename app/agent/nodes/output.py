@@ -3,6 +3,7 @@ import time
 from typing import Dict, Any, List
 
 from app.agent.state import AgentState
+from app.core.telemetry import telemetry_manager
 
 logger = logging.getLogger(__name__)
 
@@ -135,7 +136,7 @@ def output_node(state: AgentState) -> Dict[str, Any]:
     
     duration_ms = round((time.perf_counter() - t_start) * 1000, 1)
     
-    return {
+    result = {
         "turn_count": new_turn_count,
         "agent_reply": agent_reply,
         "termination_reason": termination_reason,
@@ -143,4 +144,15 @@ def output_node(state: AgentState) -> Dict[str, Any]:
         "intel_found_at_turn": current_intel_found_at,
         "timing_log": [{"node": "output", "duration_ms": duration_ms}],
     }
+
+    # Update Telemetry
+    telemetry_manager.update_session(state["session_id"], {
+        **state,
+        **result
+    })
+    
+    if termination_reason:
+        telemetry_manager.mark_session_complete(state["session_id"], termination_reason)
+
+    return result
 
