@@ -450,3 +450,4 @@ timestamp,model,task,prompt_tokens,completion_tokens,total_tokens
 2026-02-16 13:30:22,accounts/fireworks/models/kimi-k2p5,extract,35,10,45
 2026-02-16 13:32:08,accounts/fireworks/models/kimi-k2p5,reflection,31,7,38
 2026-02-16 13:32:08,accounts/fireworks/models/kimi-k2p5,extract,35,10,45
+2026-02-18 09:44:01,accounts/fireworks/models/kimi-k2p5,reflection,260,148,408

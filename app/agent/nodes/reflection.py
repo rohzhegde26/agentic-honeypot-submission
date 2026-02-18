@@ -31,14 +31,16 @@ async def run_reflection(session: SessionData) -> Dict[str, Any]:
             intel_summary=intel_summary
         )
         
-        # We only need the last few messages for context
-        messages = session.messages[-6:]
-        llm_messages = [{"role": "system", "content": prompt}]
-        for m in messages:
-            role = "assistant" if m["sender"] == "agent" else "user"
-            llm_messages.append({"role": role, "content": m["text"]})
+        # Collapse history into a single string to avoid "Last message must be User" error in Mistral
+        history_str = ""
+        for m in session.messages[-6:]:
+            sender = "Agent" if m["sender"] == "agent" else "User"
+            history_str += f"{sender}: {m['text']}\n"
             
-        # Call LLM
+        full_content = f"{prompt}\n\nRecent Conversation:\n{history_str}\n\nAnalyze the interaction."
+        
+        # Send as single User message
+        llm_messages = [{"role": "user", "content": full_content}]
         response_text = await call_llm("reflection", llm_messages)
         
         try:
