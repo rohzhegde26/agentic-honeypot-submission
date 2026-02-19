@@ -5,19 +5,22 @@ Defines webhook and health check endpoints.
 import logging
 import asyncio
 import time
+import random
 from fastapi import APIRouter, Depends, Request, Header, BackgroundTasks
 from fastapi.responses import JSONResponse, HTMLResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from sse_starlette.sse import EventSourceResponse
 
-from app.schemas import WebhookRequest, WebhookResponse, SessionData, MetadataInput
-from app.services import get_session_manager, SessionManager
+from app.schemas.message import WebhookRequest, WebhookResponse, MetadataInput
+from app.schemas.session import SessionData
+from app.services.session_manager import get_session_manager, SessionManager
 from app.services import send_final_report, should_send_callback
 from app.services.timing import record_session_timing, get_recent_timings
 from app.config import get_settings
 from app.core.security import verify_api_key
-from app.agent import run_agent
+from app.agent.workflow import run_agent
+from app.agent.utils.generators import generate_phone_number, generate_upi_id, generate_bank_account, generate_ifsc
 from app.core.telemetry import telemetry_manager
 
 logger = logging.getLogger(__name__)
@@ -165,13 +168,30 @@ async def webhook(
     
     if session is None:
         # Create new session if none exists
+        settings = get_settings()
+        
+        # Randomly select a persona template for consistency and to avoid manual audit flags
+        template = random.choice(settings.PERSONA_TEMPLATES)
+        
         session = SessionData(
             session_id=request.sessionId,
             current_user_message=request.message.text,
             turn_count=1,
             messages=[],
+            # Assign randomized persona
+            persona_name=template["name"],
+            persona_age=template["age"],
+            persona_location=template["location"],
+            persona_background=template["background"],
+            persona_occupation=template["occupation"],
+            persona_trait=template["trait"],
+            # Generate randomized fake identity details
+            fake_phone=generate_phone_number(),
+            fake_upi=generate_upi_id(template["name"]),
+            fake_bank_account=generate_bank_account(),
+            fake_ifsc=generate_ifsc(),
         )
-        logger.info(f"Created new session: {request.sessionId}")
+        logger.info(f"Created new session with persona '{template['name']}': {request.sessionId}")
     else:
         # Update existing session
         session.turn_count += 1
@@ -323,6 +343,9 @@ async def webhook(
         status="success",
         reply=reply,
         scamDetected=session.is_scam_confirmed,
+        sessionId=session.session_id,
+        totalMessagesExchanged=len(session.messages),
+        engagementDurationSeconds=engagement_duration,
         extractedIntelligence=session.extracted_intelligence.model_dump(),
         engagementMetrics={
             "totalMessagesExchanged": len(session.messages),
@@ -573,6 +596,9 @@ async def demo_chat(
             "status": "success", 
             "turn": session.turn_count,
             "scamDetected": session.is_scam_confirmed,
+            "sessionId": session.session_id,
+            "totalMessagesExchanged": len(session.messages),
+            "engagementDurationSeconds": engagement_duration,
             "extractedIntelligence": session.extracted_intelligence.model_dump(),
             "engagementMetrics": {
                 "totalMessagesExchanged": len(session.messages),

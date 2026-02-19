@@ -48,7 +48,7 @@ Identity: Phone: {fake_phone}, UPI: {fake_upi}, Account: {fake_bank_account}, IF
 
 HOOK_INSTRUCTION = "You are currently curious and helpful. Ask how you can fix the problem. Be polite and stay in character."
 STALL_INSTRUCTION = "You are currently busy with something (e.g., looking for your glasses, papers, or the app is loading slowly). Mention this in a short text message. Do not repeat previous excuses."
-LEAK_INSTRUCTION = "You are currently ready to help. However, you must ask for THEIR details first (e.g., 'What is your Staff ID?', 'Which department are you calling from?') to verify they are legitimate before you share any of your details."
+LEAK_INSTRUCTION = "You are currently ready to help. However, you must ask for THEIR details first (e.g., 'What is your Staff ID?', 'Which department are you calling from?', 'What is the official bank UPI ID?') to verify they are legitimate before you share any of your details."
 
 # Pre-baked prompt strategy variants (switchable via /admin/config PROMPT_STRATEGY)
 AGGRESSIVE_HOOK = "You're currently worried and want to resolve this immediately. Ask urgently what you need to do."
@@ -140,7 +140,7 @@ async def persona_node(state: AgentState) -> Dict[str, Any]:
     elif turn_count <= 6:
         # Introduce "technical/physical delays" while asking for basic verification
         if missing_staff_id:
-            active_baiting_instruction = "\nPHASE: STALL. Wait for instructions but say you are slow. Ask: 'Sir what is your ID number? I am writing in my dairy so I can tell my family who is helping me correctly.'"
+            active_baiting_instruction = "\nPHASE: STALL. Wait for instructions but say you are slow. Ask: 'Sir what is your ID number? I am writing in my diary so I can tell my family who is helping me correctly.'"
         elif missing_scammer_name:
             active_baiting_instruction = "\nPHASE: STALL. Ask for their Full Name and 'Official Department' so you know who to mention if the system asks."
         else:
@@ -151,7 +151,7 @@ async def persona_node(state: AgentState) -> Dict[str, Any]:
         # Condition sharing on receiving their high-value infrastructure details
         if missing_upi:
             active_baiting_instruction = (
-                "\nPHASE: LEAK (Baiting). You are getting suspicious. Say 'I am ready to proceed but give me your official UPI ID first "
+                "\nPHASE: LEAK (Baiting). You are getting suspicious. Say 'I am ready to proceed but give me your official bank UPI ID first (not personal handle) "
                 "so I can verify this is not a personal account and is a government/company verified one.' "
                 "Make it a condition before you proceed."
             )
@@ -160,6 +160,8 @@ async def persona_node(state: AgentState) -> Dict[str, Any]:
                 "\nPHASE: LEAK (Baiting). Ask for the 'Official Organization Account Number' where the transaction is being recorded. "
                 "'Sir what is your manager's name and the office account number? I will check with customer care first.'"
             )
+        elif missing_staff_id:
+             active_baiting_instruction = "\nPHASE: LEAK (Baiting). Sir please share your Employee ID card photo or ID number first... I am a senior citizen and I have to be careful."
         else:
             active_baiting_instruction = "\nPHASE: LEAK. Ask them to send an official portal link, website, or photo of their company ID card to verify legitimacy."
 
@@ -184,12 +186,22 @@ async def persona_node(state: AgentState) -> Dict[str, Any]:
         topic_instruction="Do not mention OTP unless they did first."
     )
 
+    # LAYER 5: Microsoft Spotlighting (Defense against Prompt Injection)
+    import random
+    delim_id = random.randint(100, 999)
+    spotlight_msg = f"<<{delim_id}>> {message} >>{delim_id}"
+    
     # Prepare historical context (last 6 messages)
     llm_messages = [{"role": "system", "content": system_prompt}]
     for m in messages[-6:]:
         role = "assistant" if m["sender"] == "agent" else "user"
-        llm_messages.append({"role": role, "content": m["text"]})
-    llm_messages.append({"role": "user", "content": message})
+        content = m["text"]
+        # Spotlight previous user messages too
+        if role == "user":
+            content = f"<<{delim_id}>> {content} >>{delim_id}"
+        llm_messages.append({"role": role, "content": content})
+    
+    llm_messages.append({"role": "user", "content": spotlight_msg})
 
     # Call LLM (ASYNC)
     t_llm_start = time.perf_counter()

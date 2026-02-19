@@ -59,6 +59,7 @@ class CallbackPayload(BaseModel):
     sessionId: str = Field(..., description="Session identifier")
     scamDetected: bool = Field(..., description="Whether scam was confirmed")
     totalMessagesExchanged: int = Field(..., description="Total message count")
+    engagementDurationSeconds: int = Field(default=0, description="Redundant duration")
     extractedIntelligence: CallbackExtractedIntelligence = Field(
         default_factory=CallbackExtractedIntelligence,
         description="Extracted scammer information"

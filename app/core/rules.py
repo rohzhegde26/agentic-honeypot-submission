@@ -142,15 +142,17 @@ BANK_ACCOUNT_PATTERN: Pattern = re.compile(r'\b\d{9,18}\b')
 STAFF_ID_PATTERN: Pattern = re.compile(r'(?:staff\s*id|employee\s*id|id\s*no)[\s:]*([A-Z0-9-]{3,10})', re.IGNORECASE)
 
 # IFSC Code pattern (4 uppercase + 0 + 6 alphanumeric) - Bank branch identifier
-# 2025 Standard: Strict check (5th char must be 0)
+# strict Indian IFSC code (4 letters, '0', 6 alphanumeric)
 IFSC_PATTERN: Pattern = re.compile(r'\b[A-Z]{4}0[A-Z0-9]{6}\b', re.IGNORECASE)
 
 # PAN number pattern (5 uppercase + 4 digits + 1 uppercase) - Tax ID
 PAN_PATTERN: Pattern = re.compile(r'\b[A-Z]{5}\d{4}[A-Z]\b')
 
-# SEBI @valid handle pattern (investment/broker scam identifiers)
-# 2025 Standard: Detects xyz.brk@validicici style handles
-SEBI_HANDLE_PATTERN: Pattern = re.compile(r'[a-zA-Z0-9._-]+@valid[a-zA-Z0-9_-]*\b|@[a-zA-Z0-9._-]*(?:broker|invest|trade|fund)[a-zA-Z0-9_-]*\b', re.IGNORECASE)
+# SEBI @valid handles (New 2025 standard)
+SEBI_HANDLE_PATTERN: Pattern = re.compile(
+    r'[a-zA-Z0-9._-]+@valid[a-zA-Z0-9_-]*\b|@[a-zA-Z0-9._-]*(?:broker|invest|trade|fund)[a-zA-Z0-9_-]*\b',
+    re.IGNORECASE
+)
 
 
 # =============================================================================
