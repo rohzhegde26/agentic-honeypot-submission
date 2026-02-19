@@ -5,6 +5,25 @@ Sent to the evaluation server when a confirmed scam ends.
 from typing import List
 from pydantic import BaseModel, Field
 
+# Strict extractedIntelligence keys required by the participants PDF.
+CALLBACK_INTEL_FIELDS = (
+    "phoneNumbers",
+    "bankAccounts",
+    "upiIds",
+    "phishingLinks",
+    "emailAddresses",
+)
+
+# Internal-only intelligence keys that must be moved into agentNotes.
+NON_CALLBACK_INTEL_FIELDS = (
+    "suspiciousKeywords",
+    "scammerNames",
+    "staffIds",
+    "ifscCodes",
+    "panNumbers",
+    "sebiHandles",
+)
+
 
 class ExtractedIntelligence(BaseModel):
     """Intelligence extracted from the scammer during conversation."""
@@ -21,6 +40,15 @@ class ExtractedIntelligence(BaseModel):
     sebiHandles: List[str] = Field(default_factory=list, description="SEBI @valid handles")
 
 
+class CallbackExtractedIntelligence(BaseModel):
+    """Schema-locked extractedIntelligence for final callback JSON."""
+    phoneNumbers: List[str] = Field(default_factory=list, description="Phone numbers")
+    bankAccounts: List[str] = Field(default_factory=list, description="Bank account numbers")
+    upiIds: List[str] = Field(default_factory=list, description="UPI IDs (e.g., name@upi)")
+    phishingLinks: List[str] = Field(default_factory=list, description="Suspicious URLs")
+    emailAddresses: List[str] = Field(default_factory=list, description="Email addresses")
+
+
 class CallbackPayload(BaseModel):
     """
     Final callback payload sent to the evaluation endpoint.
@@ -31,8 +59,8 @@ class CallbackPayload(BaseModel):
     sessionId: str = Field(..., description="Session identifier")
     scamDetected: bool = Field(..., description="Whether scam was confirmed")
     totalMessagesExchanged: int = Field(..., description="Total message count")
-    extractedIntelligence: ExtractedIntelligence = Field(
-        default_factory=ExtractedIntelligence,
+    extractedIntelligence: CallbackExtractedIntelligence = Field(
+        default_factory=CallbackExtractedIntelligence,
         description="Extracted scammer information"
     )
     agentNotes: str = Field(default="", description="Agent observations about the scam")

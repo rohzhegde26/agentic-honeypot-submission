@@ -4,15 +4,89 @@ Implements async HTTP client with retry logic and rate limiting awareness.
 """
 import logging
 import asyncio
-from typing import Optional
+from typing import Any, Dict, List
 
 import httpx
 
 from app.config import get_settings
 from app.schemas.session import SessionData
-from app.schemas.callback import CallbackPayload
+from app.schemas.callback import (
+    CallbackPayload,
+    CALLBACK_INTEL_FIELDS,
+    NON_CALLBACK_INTEL_FIELDS,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def _as_str_list(value: Any) -> List[str]:
+    """Normalize callback values to a clean list[str]."""
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if str(v).strip()]
+    if isinstance(value, str):
+        cleaned = value.strip()
+        return [cleaned] if cleaned else []
+    cleaned = str(value).strip()
+    return [cleaned] if cleaned else []
+
+
+def _as_intel_dict(raw_intel: Any) -> Dict[str, Any]:
+    """Convert pydantic/dict intelligence payloads into plain dict form."""
+    if raw_intel is None:
+        return {}
+    if hasattr(raw_intel, "model_dump"):
+        return raw_intel.model_dump()
+    if isinstance(raw_intel, dict):
+        return raw_intel
+    return {}
+
+
+def _build_callback_intelligence(raw_intel: Any) -> Dict[str, List[str]]:
+    """Keep only PDF-specified keys in extractedIntelligence."""
+    intel_dict = _as_intel_dict(raw_intel)
+    return {
+        key: _as_str_list(intel_dict.get(key, []))
+        for key in CALLBACK_INTEL_FIELDS
+    }
+
+
+def _build_extra_intel_note(raw_intel: Any) -> str:
+    """Move non-schema intelligence fields into agentNotes."""
+    intel_dict = _as_intel_dict(raw_intel)
+    extra_parts: List[str] = []
+
+    for key in NON_CALLBACK_INTEL_FIELDS:
+        values = _as_str_list(intel_dict.get(key, []))
+        if values:
+            extra_parts.append(f"{key}: {', '.join(values)}")
+
+    # Guard against any additional future keys beyond the schema.
+    for key, value in intel_dict.items():
+        if key in CALLBACK_INTEL_FIELDS or key in NON_CALLBACK_INTEL_FIELDS:
+            continue
+        values = _as_str_list(value)
+        if values:
+            extra_parts.append(f"{key}: {', '.join(values)}")
+
+    if not extra_parts:
+        return ""
+
+    return (
+        "Additional intelligence captured outside callback schema: "
+        + " | ".join(extra_parts)
+    )
+
+
+def _build_callback_notes(base_notes: str, raw_intel: Any) -> str:
+    """Create schema-compliant notes with spillover intelligence details."""
+    notes = (base_notes or "").strip()
+    extra_note = _build_extra_intel_note(raw_intel)
+
+    if extra_note:
+        return f"{notes}\n{extra_note}" if notes else extra_note
+    return notes or "Scam engagement completed."
 
 
 async def send_final_report(session: SessionData) -> bool:
@@ -37,8 +111,8 @@ async def send_final_report(session: SessionData) -> bool:
         sessionId=session.session_id,
         scamDetected=session.is_scam_confirmed,
         totalMessagesExchanged=len(session.messages),
-        extractedIntelligence=session.extracted_intelligence,
-        agentNotes=session.agent_notes or "Scam engagement completed.",
+        extractedIntelligence=_build_callback_intelligence(session.extracted_intelligence),
+        agentNotes=_build_callback_notes(session.agent_notes, session.extracted_intelligence),
     )
     
     logger.info(f"Sending callback for session {session.session_id}")

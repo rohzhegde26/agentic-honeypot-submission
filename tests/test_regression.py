@@ -3,7 +3,7 @@ Regression Tests for Callback Behavior.
 Ensures callback fires exactly once per confirmed scam session.
 """
 import pytest
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch
 
 from app.agent.workflow import run_agent
 from app.services.callback_service import should_send_callback, send_final_report
@@ -128,6 +128,84 @@ class TestCallbackPayload:
         assert "extractedIntelligence" in payload
         assert payload["extractedIntelligence"]["upiIds"] == ["scammer@upi"]
         assert payload["extractedIntelligence"]["bankAccounts"] == ["12345678901234"]
+
+    @pytest.mark.asyncio
+    async def test_send_final_report_uses_pdf_schema_and_moves_extra_intel_to_notes(self, session_factory):
+        """Verify final callback JSON matches PDF schema and spills extra intel to agentNotes."""
+        session = session_factory(
+            session_id="payload-002",
+            is_scam_confirmed=True,
+            termination_reason="extracted_success",
+            callback_sent=False,
+            messages=[
+                {"sender": "scammer", "text": "Share UPI and account details now!"},
+                {"sender": "agent", "text": "Please explain what to do."},
+            ],
+            extracted_intelligence={
+                "phoneNumbers": ["9876543210"],
+                "bankAccounts": ["12345678901234"],
+                "upiIds": ["scammer@upi"],
+                "phishingLinks": ["http://fake-link.test"],
+                "emailAddresses": ["fraud@mailer.test"],
+                "suspiciousKeywords": ["urgent", "blocked"],
+                "staffIds": ["STAFF-9"],
+            },
+        )
+        session.agent_notes = "Scammer attempted urgent pressure tactics."
+
+        captured = {}
+
+        class DummyResponse:
+            def __init__(self, status_code: int, text: str = "ok"):
+                self.status_code = status_code
+                self.text = text
+
+        class DummyClient:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return False
+
+            async def post(self, url, json, headers):
+                captured["url"] = url
+                captured["json"] = json
+                captured["headers"] = headers
+                return DummyResponse(200)
+
+        class DummySettings:
+            CALLBACK_MAX_RETRIES = 1
+            CALLBACK_TIMEOUT = 5
+            CALLBACK_URL = "https://callback.local/mock"
+
+        with patch("app.services.callback_service.get_settings", return_value=DummySettings()):
+            with patch("app.services.callback_service.httpx.AsyncClient", return_value=DummyClient()):
+                ok = await send_final_report(session)
+
+        assert ok is True
+        assert captured["url"] == "https://callback.local/mock"
+        assert captured["headers"] == {"Content-Type": "application/json"}
+
+        payload = captured["json"]
+        assert set(payload.keys()) == {
+            "sessionId",
+            "scamDetected",
+            "totalMessagesExchanged",
+            "extractedIntelligence",
+            "agentNotes",
+        }
+        assert set(payload["extractedIntelligence"].keys()) == {
+            "phoneNumbers",
+            "bankAccounts",
+            "upiIds",
+            "phishingLinks",
+            "emailAddresses",
+        }
+        assert "suspiciousKeywords" not in payload["extractedIntelligence"]
+        assert "staffIds" not in payload["extractedIntelligence"]
+        assert "Additional intelligence captured outside callback schema:" in payload["agentNotes"]
+        assert "suspiciousKeywords: urgent, blocked" in payload["agentNotes"]
+        assert "staffIds: STAFF-9" in payload["agentNotes"]
 
 
 
