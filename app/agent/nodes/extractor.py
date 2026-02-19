@@ -46,8 +46,10 @@ def _extract_phone_numbers(text: str) -> List[str]:
     normalized = []
     for m in matches:
         clean = re.sub(r'[\s-]', '', m)
-        if clean.startswith('+91'):
-            clean = clean[3:]
+        if clean.startswith('+'):
+            clean = clean[1:]
+        if clean.startswith('91') and len(clean) == 12:
+            clean = clean[2:]
         if len(clean) == 10:
             normalized.append(clean)
     return normalized
@@ -68,14 +70,22 @@ def _extract_emails(text: str) -> List[str]:
 def _extract_bank_accounts(text: str) -> List[str]:
     """Extract potential bank account numbers from text using regex."""
     matches = BANK_ACCOUNT_PATTERN.findall(text)
-    # Filter out phone numbers (10 digits starting with 6-9) and short numbers
     accounts = []
     for m in matches:
-        # Skip if it looks like a phone number
+        # 1. Skip if it's strictly a 10-digit Indian mobile (starts 6-9)
         if len(m) == 10 and m[0] in '6789':
             continue
-        # Only include numbers that are likely bank accounts (11+ digits or 9-10 not phone-like)
-        if len(m) >= 11 or (len(m) >= 9 and m[0] not in '6789'):
+            
+        # 2. Skip if it's a 12-digit Indian mobile with '91' prefix
+        if len(m) == 12 and m.startswith('91') and m[2] in '6789':
+            continue
+            
+        # 3. Skip if it's an 11-digit mobile with '0' prefix (Indian landline/mobile standard)
+        if len(m) == 11 and m.startswith('0') and m[1] in '6789':
+            continue
+
+        # Only include numbers that are likely bank accounts (usually >= 9 digits)
+        if len(m) >= 9:
             accounts.append(m)
     return accounts
 
@@ -235,7 +245,20 @@ async def extractor_node(state: AgentState) -> Dict[str, Any]:
     all_upi = [u for u in (set(regex_upi) | set(llm_upi)) if u.lower().strip() not in fake_vals]
     all_phones = [p for p in (set(regex_phones) | set(llm_phones)) if p.lower().strip() not in fake_vals]
     all_links = [l for l in (set(regex_links) | set(llm_links)) if l.lower().strip() not in fake_vals]
-    all_accounts = [a for a in (set(regex_accounts) | set(llm_accounts)) if a.lower().strip() not in fake_vals]
+    
+    # Priority Filtering: If something is a phone number, it's NOT a bank account.
+    # We strip 91/0 from all_phones to check against bank accounts (which might be raw digits)
+    phone_stubs = {p[-10:] for p in all_phones}
+    all_accounts = []
+    for a in (set(regex_accounts) | set(llm_accounts)):
+        val = a.lower().strip()
+        if val in fake_vals:
+            continue
+        # If the account number ends with a known phone number and is 10-12 digits, skip it
+        if len(val) <= 12 and val[-10:] in phone_stubs:
+            continue
+        all_accounts.append(a)
+
     all_emails = [e for e in (set(regex_emails) | set(llm_emails)) if e.lower().strip() not in fake_vals]
     
     all_keywords = list(set(regex_keywords))

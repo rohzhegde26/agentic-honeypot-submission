@@ -44,7 +44,16 @@ Identity: Phone: {fake_phone}, UPI: {fake_upi}, Account: {fake_bank_account}, IF
 
 {phase_instruction}
 {language_instruction}
-{topic_instruction}"""
+{topic_instruction}
+
+RED-FLAG PROBING CHECKLIST:
+Always try to find out 1 missing detail from this list by asking a natural follow-up question:
+1. OFFICIAL CORPORATE ID: "Sir please share your Employee ID or Branch code so I can save it."
+2. ORGANIZATION NAME: "Which office/company exactly are you from?"
+3. OFFICIAL HANDLE/ID: "Give me your official company UPI or department link, not personal."
+4. DOCUMENTATION: "Can you share a photo of the circular or your ID card?"
+5. MANAGER NAME: "Who is your senior officer? I want to write the name in my diary."
+"""
 
 HOOK_INSTRUCTION = "You are currently curious and helpful. Ask how you can fix the problem. Be polite and stay in character."
 STALL_INSTRUCTION = "You are currently busy with something (e.g., looking for your glasses, papers, or the app is loading slowly). Mention this in a short text message. Do not repeat previous excuses."
@@ -119,51 +128,53 @@ async def persona_node(state: AgentState) -> Dict[str, Any]:
         phase_instruction = strategy["stall"] if (h % 100) < stall_chance else strategy["leak"]
 
     # =========================================================================
-    # GOD MODE: STRATEGIC 3-PHASE BAITING (GENERALIZED)
+    # GOD MODE: DYNAMIC CONTEXT-AWARE SUE BAITING (Multi-Scam Hardening)
     # =========================================================================
     p_intel = state.get("extracted_intelligence", {})
     if hasattr(p_intel, "model_dump"):
         p_intel = p_intel.model_dump()
         
+    msg_lower = message.lower()
+    missing_id = not p_intel.get("staffIds", [])
+    missing_name = not p_intel.get("scammerNames", [])
     missing_upi = not p_intel.get("upiIds", [])
-    missing_bank_ac = not p_intel.get("bankAccounts", [])
-    missing_staff_id = not p_intel.get("staffIds", [])
-    missing_scammer_name = not p_intel.get("scammerNames", [])
+    
+    # Detect Scam Context for Relevant Baiting
+    is_job_scam = any(word in msg_lower for word in ["job", "hiring", "salary", "work", "part time"])
+    is_lottery_scam = any(word in msg_lower for word in ["won", "prize", "lottery", "gift", "reward"])
+    is_crypto_scam = any(word in msg_lower for word in ["investment", "crypto", "bitcoin", "trading", "profit"])
+    is_tech_scam = any(word in msg_lower for word in ["blocked", "suspended", "update", "verify", "kyc"])
 
     active_baiting_instruction = ""
     
-    # PHASE 1: Hook (Turns 1-2) -> Build Trust & Cooperation
     if turn_count <= 2:
-        active_baiting_instruction = "\nPHASE: HOOK. Be extremely polite and cooperative. Build trust. Do not ask for their details yet."
+        active_baiting_instruction = "\nPHASE: HOOK. Be polite and helpful. Do not probe yet."
     
-    # PHASE 2: Stall (Turns 3-6) -> Friction & Professional Verification
     elif turn_count <= 6:
-        # Introduce "technical/physical delays" while asking for basic verification
-        if missing_staff_id:
-            active_baiting_instruction = "\nPHASE: STALL. Wait for instructions but say you are slow. Ask: 'Sir what is your ID number? I am writing in my diary so I can tell my family who is helping me correctly.'"
-        elif missing_scammer_name:
-            active_baiting_instruction = "\nPHASE: STALL. Ask for their Full Name and 'Official Department' so you know who to mention if the system asks."
+        # Phase 2: Inquisitive Stall
+        if is_job_scam and missing_name:
+            active_baiting_instruction = "\nPHASE: STALL. Ask for their Manager's name and 'HR Registration ID' before you fill the form."
+        elif is_lottery_scam and missing_id:
+            active_baiting_instruction = "\nPHASE: STALL. Ask for their 'Winner Verification Officer ID' to verify the prize."
+        elif is_tech_scam and missing_name:
+            active_baiting_instruction = "\nPHASE: STALL. Ask for their 'Security Officer Name' and Branch so you can call BSNL/Bank to confirm."
+        elif missing_name:
+            active_baiting_instruction = f"\nPHASE: STALL. Ask for their full name and department. Say you are confused about who they are."
         else:
-            active_baiting_instruction = "\nPHASE: STALL. Complain about app loading, network, or phone hanging to waste time."
+            active_baiting_instruction = "\nPHASE: STALL. Complain about phone hanging or network being slow to waste time."
 
-    # PHASE 3: Leak (Turns 7+) -> Reciprocal Exchange / Skeptical Probing
     else:
-        # Condition sharing on receiving their high-value infrastructure details
-        if missing_upi:
-            active_baiting_instruction = (
-                "\nPHASE: LEAK (Baiting). You are getting suspicious. Say 'I am ready to proceed but give me your official bank UPI ID first (not personal handle) "
-                "so I can verify this is not a personal account and is a government/company verified one.' "
-                "Make it a condition before you proceed."
-            )
-        elif missing_bank_ac:
-            active_baiting_instruction = (
-                "\nPHASE: LEAK (Baiting). Ask for the 'Official Organization Account Number' where the transaction is being recorded. "
-                "'Sir what is your manager's name and the office account number? I will check with customer care first.'"
-            )
-        elif missing_staff_id:
-             active_baiting_instruction = "\nPHASE: LEAK (Baiting). Sir please share your Employee ID card photo or ID number first... I am a senior citizen and I have to be careful."
+        # Phase 3: Aggressive Elicitation (Exchange required)
+        if is_job_scam:
+            active_baiting_instruction = "\nPHASE: LEAK (Baiting). Refuse to send money/details until they send an 'Official Hiring Letter' or HR's company UPI for registration."
+        elif is_lottery_scam:
+            active_baiting_instruction = "\nPHASE: LEAK (Baiting). Ask for the 'Government Prize Portal Link' or the GST department's UPI ID to verify the tax payment."
+        elif is_crypto_scam and missing_upi:
+            active_baiting_instruction = "\nPHASE: LEAK (Baiting). Demand their 'Official Exchange/Broker Handle' (not personal) to verify authenticity before you deposit."
+        elif is_tech_scam:
+             active_baiting_instruction = "\nPHASE: LEAK (Baiting). Ask for the 'Official Bank Service Handle' and a photo of their employee ID card."
         else:
-            active_baiting_instruction = "\nPHASE: LEAK. Ask them to send an official portal link, website, or photo of their company ID card to verify legitimacy."
+            active_baiting_instruction = "\nPHASE: LEAK. Ask for their official company handle and manager's name before you proceed."
 
     canary = ""  # Sanitizer disabled
     user_is_speaking_hindi = is_hindi(raw_message)

@@ -143,7 +143,13 @@ async def honeypot_test():
     }
 
 
-@router.post("/webhook", response_model=WebhookResponse)
+@router.post(
+    "/webhook",
+    response_model=WebhookResponse,
+    tags=["Agentic Honeypot"],
+    summary="Scammer Message Webhook",
+    description="Primary entry point for scammer messages. Processes incoming text, manages session state, and returns a contextual AI response with engagement metrics."
+)
 async def webhook(
     request: WebhookRequest,
     background_tasks: BackgroundTasks,

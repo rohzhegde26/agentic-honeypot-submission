@@ -22,9 +22,13 @@ def normalize_obfuscated_numbers(text: str) -> str:
         'paanch': '5', 'chey': '6', 'saat': '7', 'aath': '8', 'nau': '9'
     }
     
-    # 1. Letter Swaps (Common obfuscation: O for 0, l for 1)
+    # 1. Letter Swaps (Only if part of a digit sequence)
+    # Example: "9 8 O 7" -> "9 8 0 7"
     normalized = text.lower()
-    normalized = normalized.replace('o', '0').replace('l', '1')
+    # Replace 'o' with '0' only if it's preceded or followed by a digit or space+digit
+    normalized = re.sub(r'(?<=\d\s)o\b|\bo(?=\s\d)|(?<=\d)o|o(?=\d)', '0', normalized)
+    # Replace 'l' with '1' similarly
+    normalized = re.sub(r'(?<=\d\s)l\b|\bl(?=\s\d)|(?<=\d)l|l(?=\d)', '1', normalized)
     
     # 2. Replace written words with digits
     for word, digit in word_to_digit.items():

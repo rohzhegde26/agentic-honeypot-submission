@@ -124,8 +124,8 @@ SUSPECTED_SCAM_KEYWORDS: List[str] = [
 UPI_PATTERN: Pattern = re.compile(r'\b[a-zA-Z0-9._-]+@[a-zA-Z]{2,}\b')
 EMAIL_DOMAINS_TO_EXCLUDE: set = {'gmail', 'yahoo', 'hotmail', 'outlook', 'email', 'mail', 'proton'}
 
-# Indian phone number pattern (+91 optional, starts with 6-9)
-PHONE_PATTERN: Pattern = re.compile(r'(?:\+91[\s-]?)?[6-9]\d{9}\b|\b\d{10}\b')
+# Indian phone number pattern (+91 or 91 optional, starts with 6-9)
+PHONE_PATTERN: Pattern = re.compile(r'(?<!\d)(?:\+?91[\s-]?)?[6-9]\d{9}\b|\b\d{10}\b')
 
 # Phishing link pattern
 LINK_PATTERN: Pattern = re.compile(r'https?://[^\s<>"\']+|www\.[^\s<>"\']+')

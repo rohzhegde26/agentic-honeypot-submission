@@ -120,7 +120,27 @@ async def validation_exception_handler(request, exc: RequestValidationError):
     )
 
 
-@app.get("/")
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc: Exception):
+    """Global fallback for unhandled 500 errors."""
+    logger.error(
+        "Unhandled exception: method=%s path=%s error=%s",
+        request.method,
+        request.url.path,
+        str(exc),
+        exc_info=True
+    )
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "detail": "An internal system error occurred.",
+            "type": type(exc).__name__,
+            "hint": "Ensure all required environment variables (NVIDIA_API_KEY, UPSTASH_REDIS_*) are configured correctly."
+        },
+    )
+
+
+@app.get("/", tags=["System"], summary="GUI Dashboard")
 async def root():
     """Root endpoint — serves interactive GUI dashboard."""
     from fastapi.responses import HTMLResponse
