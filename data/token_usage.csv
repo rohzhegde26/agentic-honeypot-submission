@@ -2036,3 +2036,4 @@ timestamp,model,task,prompt_tokens,completion_tokens,total_tokens
 2026-02-21 00:21:21,mistralai/mistral-large-3-675b-instruct-2512,extract,330,82,412
 2026-02-21 00:21:22,mistralai/mistral-large-3-675b-instruct-2512,reflection,516,281,797
 2026-02-21 00:21:47,mistralai/mistral-large-3-675b-instruct-2512,reflection,291,33,324
+2026-02-21 00:36:37,mistralai/mistral-large-3-675b-instruct-2512,extract,336,78,414
