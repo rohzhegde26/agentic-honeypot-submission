@@ -249,6 +249,7 @@ async def webhook(
         session.scam_level = agent_result.get("scam_level", session.scam_level)
         session.scam_confidence = agent_result.get("scam_confidence", session.scam_confidence)
         session.is_scam_confirmed = agent_result.get("is_scam_confirmed", session.is_scam_confirmed)
+        session.scam_type = agent_result.get("scam_type", session.scam_type)
         session.agent_notes = agent_result.get("agent_notes", session.agent_notes)
         
         # Update persona details (in case they were initialized in this turn)
