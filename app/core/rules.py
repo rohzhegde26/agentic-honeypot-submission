@@ -139,7 +139,7 @@ BANK_ACCOUNT_PATTERN: Pattern = re.compile(r'\b\d{9,18}\b')
 
 
 # Staff ID pattern (common in Indian scams: Staff ID: 1234 or I m Staff Name ID: 1234)
-STAFF_ID_PATTERN: Pattern = re.compile(r'(?:staff\s*id|employee\s*id|id\s*no)[\s:]*([A-Z0-9-]{3,10})', re.IGNORECASE)
+STAFF_ID_PATTERN: Pattern = re.compile(r'(?i)(?:staff\s*id|employee\s*id|id\s*no|my\s*id|ref\s*id)[\s:]*([A-Z0-9-]{3,12})')
 
 # IFSC Code pattern (4 uppercase + 0 + 6 alphanumeric) - Bank branch identifier
 # strict Indian IFSC code (4 letters, '0', 6 alphanumeric)
