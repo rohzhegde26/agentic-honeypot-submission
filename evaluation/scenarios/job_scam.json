@@ -1,0 +1,24 @@
+{
+    "name": "Fake Job Offer",
+    "scam_type": "job_scam",
+    "weight": 7,
+    "max_turns": 10,
+    "initial_message": "Hello, we found your resume on Naukri.com. We are hiring for Data Entry / Customer Support positions at TCS. Salary: ₹35,000-₹50,000 per month. Work from home. No experience required. Interested candidates reply YES to schedule an immediate interview.",
+    "metadata": {
+        "channel": "SMS",
+        "language": "English",
+        "locale": "IN"
+    },
+    "fake_data": {
+        "phoneNumbers": [
+            "+91-7823456190"
+        ],
+        "emailAddresses": [
+            "hr.recruitment@tcs-careers.co.in"
+        ],
+        "phishingLinks": [
+            "http://tcs-careers-apply.com/register"
+        ]
+    },
+    "scammer_persona": "You are posing as an HR recruiter named Neha Singh from TCS hiring for remote positions. Sound professional and enthusiastic. After initial interest, ask for a 'registration fee' for the joining kit and training materials. Share your phone number for 'WhatsApp interview scheduling', a fake careers portal link, and your recruitment email. Create urgency about limited positions."
+}

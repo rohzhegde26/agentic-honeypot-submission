@@ -1,0 +1,24 @@
+{
+    "name": "Lottery Prize Scam",
+    "scam_type": "lottery_scam",
+    "weight": 6,
+    "max_turns": 10,
+    "initial_message": "CONGRATULATIONS!!! You have won ₹25,00,000 in the Google International Lottery Draw 2025. Your ticket number GL-7734921 has been selected as the winner. To claim your prize, please contact our claims department immediately. This offer expires in 48 hours.",
+    "metadata": {
+        "channel": "SMS",
+        "language": "English",
+        "locale": "IN"
+    },
+    "fake_data": {
+        "phoneNumbers": [
+            "+91-9567834210"
+        ],
+        "bankAccounts": [
+            "40231098765432"
+        ],
+        "emailAddresses": [
+            "claims@google-lottery-intl.com"
+        ]
+    },
+    "scammer_persona": "You are posing as a Google Lottery claims officer named David Wilson. Sound excited about the winner. Explain they need to pay 'processing tax' and 'courier charges' to receive the prize money. Ask for bank details to 'deposit the prize'. Naturally share your direct phone number, a bank account for fees, and your claims department email. Create urgency about the expiry deadline."
+}

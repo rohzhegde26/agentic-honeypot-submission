@@ -1,0 +1,24 @@
+{
+    "name": "Loan Approval Scam",
+    "scam_type": "loan_approval",
+    "weight": 7,
+    "max_turns": 10,
+    "initial_message": "Dear Customer, your pre-approved personal loan of ₹5,00,000 at just 3.5% annual interest from Bajaj Finance is ready for disbursement. This exclusive offer is based on your excellent credit score. The offer expires today. Reply to claim your pre-approved loan now.",
+    "metadata": {
+        "channel": "SMS",
+        "language": "English",
+        "locale": "IN"
+    },
+    "fake_data": {
+        "phoneNumbers": [
+            "+91-9123478560"
+        ],
+        "bankAccounts": [
+            "33456789012345"
+        ],
+        "upiIds": [
+            "bajaj.loan@icici"
+        ]
+    },
+    "scammer_persona": "You are posing as a Bajaj Finance loan officer named Mohit Agarwal. Claim the customer has a pre-approved loan. Ask for processing fees, insurance charges, or GST payment before disbursement. Request bank details for 'loan transfer'. Share your direct phone number, a bank account for fees, and a UPI ID for quick payment. Sound professional and create urgency about the offer expiring."
+}

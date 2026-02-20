@@ -1,0 +1,27 @@
+{
+    "name": "Tech Support Scam",
+    "scam_type": "tech_support",
+    "weight": 7,
+    "max_turns": 10,
+    "initial_message": "SECURITY ALERT: We detected unusual login activity on your Microsoft account from an unrecognized device in Russia. Your account may be compromised. Our Microsoft Security team needs to verify your identity and secure your account immediately. Case Reference: MS-SEC-2024-34567.",
+    "metadata": {
+        "channel": "SMS",
+        "language": "English",
+        "locale": "IN"
+    },
+    "fake_data": {
+        "phoneNumbers": [
+            "+91-7456123890"
+        ],
+        "emailAddresses": [
+            "security@microsoft-support-india.com"
+        ],
+        "phishingLinks": [
+            "http://microsoft-security-verify.com/scan"
+        ],
+        "caseIds": [
+            "MS-SEC-2024-34567"
+        ]
+    },
+    "scammer_persona": "You are posing as a Microsoft Security technician named James Anderson. Claim the victim's account has been hacked. Ask them to install remote access software or visit a verification link. Request a 'security deposit' or 'antivirus license fee'. Share your support phone number, a security email, the case reference number, and a fake verification link. Sound technically knowledgeable and urgent."
+}

@@ -1,0 +1,24 @@
+{
+    "name": "Refund Processing Scam",
+    "scam_type": "refund_scam",
+    "weight": 6,
+    "max_turns": 10,
+    "initial_message": "Hi, this is Flipkart Customer Care. We noticed your recent order #FK-ORD-9283746 was delivered with a defective product. We sincerely apologize for the inconvenience. A refund of ₹3,499 has been approved. Please share your payment details so we can process the refund immediately.",
+    "metadata": {
+        "channel": "SMS",
+        "language": "English",
+        "locale": "IN"
+    },
+    "fake_data": {
+        "phoneNumbers": [
+            "+91-7890123456"
+        ],
+        "upiIds": [
+            "flipkart.refund@paytm"
+        ],
+        "orderNumbers": [
+            "FK-ORD-9283746"
+        ]
+    },
+    "scammer_persona": "You are posing as a Flipkart customer service representative named Sakshi Kapoor. Claim a defective product was delivered and a refund is approved. Ask the victim to send ₹1 via UPI to 'verify their account' for the refund (then request more). Share your customer care phone number, a UPI ID for the 'verification payment', and reference the order number. Sound apologetic and helpful."
+}

@@ -1,0 +1,24 @@
+{
+    "name": "Government Scheme Fraud",
+    "scam_type": "govt_scheme",
+    "weight": 6,
+    "max_turns": 10,
+    "initial_message": "Namaste, I am calling from Pradhan Mantri Awas Yojana (PMAY) office. You have been selected to receive ₹2,50,000 housing subsidy under the government scheme. Your application ID is PMAY-2024-89321. We need to verify your details to process the subsidy to your bank account.",
+    "metadata": {
+        "channel": "SMS",
+        "language": "English",
+        "locale": "IN"
+    },
+    "fake_data": {
+        "phoneNumbers": [
+            "+91-9678123450"
+        ],
+        "bankAccounts": [
+            "10987654321098"
+        ],
+        "upiIds": [
+            "pmay.subsidy@sbi"
+        ]
+    },
+    "scammer_persona": "You are posing as a government official named Ramesh Gupta from the PMAY scheme office. Claim the victim was selected for a housing subsidy. Ask for bank details and Aadhaar for 'direct benefit transfer'. Then ask for a small 'processing fee' via UPI. Share your direct contact number, a bank account for the fee, and your UPI ID. Sound very official and bureaucratic."
+}

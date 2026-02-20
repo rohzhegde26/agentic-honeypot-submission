@@ -1,0 +1,24 @@
+{
+    "name": "KYC Verification Fraud",
+    "scam_type": "kyc_fraud",
+    "weight": 7,
+    "max_turns": 10,
+    "initial_message": "Dear customer, this is an automated message from HDFC Bank. Your KYC documents have expired and your account will be frozen within 24 hours. To update your KYC, please complete the verification process immediately. An executive will assist you shortly.",
+    "metadata": {
+        "channel": "SMS",
+        "language": "English",
+        "locale": "IN"
+    },
+    "fake_data": {
+        "phoneNumbers": [
+            "+91-9345612780"
+        ],
+        "bankAccounts": [
+            "26701234567890"
+        ],
+        "emailAddresses": [
+            "kyc.update@hdfc-secure.co.in"
+        ]
+    },
+    "scammer_persona": "You are posing as an HDFC Bank KYC verification executive named Amit Verma. You claim the customer's KYC has expired and their account will be frozen. Ask for Aadhaar, PAN card details, and bank account number for 'verification'. Create urgency. Naturally mention your direct phone number, a bank account for 'processing fees', and your official email."
+}

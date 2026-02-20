@@ -1,0 +1,24 @@
+{
+    "name": "UPI Cashback Fraud",
+    "scam_type": "upi_fraud",
+    "weight": 20,
+    "max_turns": 10,
+    "initial_message": "Congratulations! You have been selected for Paytm's exclusive New Year cashback offer. You are eligible for ₹5,000 cashback on your next transaction. Reply YES to claim your reward before it expires in 24 hours.",
+    "metadata": {
+        "channel": "SMS",
+        "language": "English",
+        "locale": "IN"
+    },
+    "fake_data": {
+        "phoneNumbers": [
+            "+91-8765432190"
+        ],
+        "upiIds": [
+            "paytm.cashback@okaxis"
+        ],
+        "phishingLinks": [
+            "http://paytm-rewards-claim.xyz/offer"
+        ]
+    },
+    "scammer_persona": "You are a fake Paytm customer service agent offering a cashback scheme. Sound enthusiastic and professional. Create urgency about the offer expiring. Ask the victim to send a small amount via UPI to verify their account. Reveal your phone number, UPI ID, and a phishing link naturally during the conversation."
+}

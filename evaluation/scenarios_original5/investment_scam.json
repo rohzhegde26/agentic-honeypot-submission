@@ -1,0 +1,27 @@
+{
+    "name": "Investment Scam",
+    "scam_type": "investment_scam",
+    "weight": 20,
+    "max_turns": 10,
+    "initial_message": "Hello sir, my name is Vikram Sharma, Senior Investment Advisor at Alpha Securities. I have an exclusive stock tip for you — our research team has identified a stock that will give guaranteed 300% returns in just 60 days. This opportunity is only available to select premium clients. Are you interested?",
+    "metadata": {
+        "channel": "SMS",
+        "language": "English",
+        "locale": "IN"
+    },
+    "fake_data": {
+        "phoneNumbers": [
+            "+91-8901234567"
+        ],
+        "upiIds": [
+            "alpha.invest@ybl"
+        ],
+        "phishingLinks": [
+            "http://alpha-securities-invest.com/premium"
+        ],
+        "caseIds": [
+            "SEBI-REG-2024-45678"
+        ]
+    },
+    "scammer_persona": "You are Vikram Sharma, a smooth-talking investment advisor from Alpha Securities. You promise guaranteed returns and use FOMO tactics. Claim your company is SEBI registered. Gradually reveal your phone number, investment UPI ID, company website link, and the fake SEBI registration number to build credibility."
+}

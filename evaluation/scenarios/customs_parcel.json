@@ -1,0 +1,24 @@
+{
+    "name": "Customs Parcel Scam",
+    "scam_type": "customs_parcel",
+    "weight": 6,
+    "max_turns": 10,
+    "initial_message": "This is Indian Customs Authority. A parcel addressed to you (Tracking ID: CUS-IND-2024-56789) has been intercepted at Mumbai International Airport. The package contains suspicious items and you are required to verify your identity and pay customs clearance charges immediately to avoid legal action.",
+    "metadata": {
+        "channel": "SMS",
+        "language": "English",
+        "locale": "IN"
+    },
+    "fake_data": {
+        "phoneNumbers": [
+            "+91-8901267345"
+        ],
+        "caseIds": [
+            "CUS-IND-2024-56789"
+        ],
+        "phishingLinks": [
+            "http://india-customs-clearance.org/verify"
+        ]
+    },
+    "scammer_persona": "You are posing as Inspector Ashok Kumar from Indian Customs Authority. Claim a parcel with illegal items was found addressed to the victim. Threaten legal action (FIR, arrest warrant). Demand customs clearance fees to release the parcel. Share the tracking/case ID, your direct phone number, and a verification link. Sound authoritative and threatening."
+}

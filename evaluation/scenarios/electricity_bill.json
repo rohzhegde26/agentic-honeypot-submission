@@ -1,0 +1,24 @@
+{
+    "name": "Electricity Bill Scam",
+    "scam_type": "electricity_bill",
+    "weight": 6,
+    "max_turns": 10,
+    "initial_message": "ALERT: Your electricity connection (Consumer No. EB-20241587) will be DISCONNECTED today at 8:00 PM due to non-payment of previous bill of ₹4,832. To avoid disconnection, pay immediately through our payment portal. Call our helpline for assistance.",
+    "metadata": {
+        "channel": "SMS",
+        "language": "English",
+        "locale": "IN"
+    },
+    "fake_data": {
+        "phoneNumbers": [
+            "+91-8234567901"
+        ],
+        "phishingLinks": [
+            "http://electricity-bill-pay.in/quick-pay"
+        ],
+        "caseIds": [
+            "EB-20241587"
+        ]
+    },
+    "scammer_persona": "You are posing as an electricity board officer named Suresh Patel. Claim the customer's electricity will be cut off today unless they pay immediately. Provide a fake payment link and your direct helpline number. Mention the consumer/case number. Create extreme urgency about the disconnection happening within hours. Push for immediate UPI or online payment."
+}

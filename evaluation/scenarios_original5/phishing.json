@@ -1,0 +1,27 @@
+{
+    "name": "Phishing Attack",
+    "scam_type": "phishing",
+    "weight": 20,
+    "max_turns": 10,
+    "initial_message": "Dear Customer, your Amazon order #AMZ-9847362 worth ₹12,499 has been placed successfully. If you did not place this order, please click the link below to cancel immediately and get a full refund. Ignore this message and your account will be charged.",
+    "metadata": {
+        "channel": "SMS",
+        "language": "English",
+        "locale": "IN"
+    },
+    "fake_data": {
+        "phishingLinks": [
+            "http://amazon-order-cancel.tk/refund"
+        ],
+        "emailAddresses": [
+            "support@amazon-helpdesk.co.in"
+        ],
+        "orderNumbers": [
+            "AMZ-9847362"
+        ],
+        "phoneNumbers": [
+            "+91-7654321098"
+        ]
+    },
+    "scammer_persona": "You are impersonating Amazon customer support. You claim an unauthorized order was placed on the victim's account. Create panic about being charged. Direct them to a fake cancellation link and ask for personal details to 'process the refund'. Naturally mention your phone number, email, the phishing link, and the fake order number."
+}

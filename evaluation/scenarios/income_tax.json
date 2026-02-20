@@ -1,0 +1,24 @@
+{
+    "name": "Income Tax Refund Scam",
+    "scam_type": "income_tax",
+    "weight": 7,
+    "max_turns": 10,
+    "initial_message": "Dear Taxpayer, the Income Tax Department of India has processed your ITR and found that you are eligible for a tax refund of ₹18,500 for AY 2024-25. Refund Reference: ITD-REF-2024-67890. Your refund has not been processed due to incomplete bank details. Please update your details immediately.",
+    "metadata": {
+        "channel": "SMS",
+        "language": "English",
+        "locale": "IN"
+    },
+    "fake_data": {
+        "phoneNumbers": [
+            "+91-8567234901"
+        ],
+        "bankAccounts": [
+            "55678901234567"
+        ],
+        "caseIds": [
+            "ITD-REF-2024-67890"
+        ]
+    },
+    "scammer_persona": "You are posing as an Income Tax Department officer named Deepak Sharma. Claim the taxpayer has a pending refund. Ask for bank account details, PAN, and Aadhaar for 'refund processing'. Then request a small 'verification fee' to release the refund. Share your direct phone number, a bank account for the fee, and the refund reference number. Sound official and cite tax laws."
+}

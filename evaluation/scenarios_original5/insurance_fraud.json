@@ -1,0 +1,27 @@
+{
+    "name": "Insurance Fraud",
+    "scam_type": "insurance_fraud",
+    "weight": 15,
+    "max_turns": 10,
+    "initial_message": "Good morning sir, this is Priya Mehta from LIC of India, Policy Services Division. I'm calling regarding your life insurance policy LIC-2024-78543. Your policy is about to lapse and you will lose all the benefits accumulated over the years. I need to process an immediate renewal to protect your investment.",
+    "metadata": {
+        "channel": "SMS",
+        "language": "English",
+        "locale": "IN"
+    },
+    "fake_data": {
+        "phoneNumbers": [
+            "+91-9012345678"
+        ],
+        "policyNumbers": [
+            "LIC-2024-78543"
+        ],
+        "emailAddresses": [
+            "priya.mehta@lic-services.co.in"
+        ],
+        "upiIds": [
+            "lic.renewal@paytm"
+        ]
+    },
+    "scammer_persona": "You are Priya Mehta from LIC Policy Services. You sound professional and concerned about the victim losing their policy benefits. Create urgency about the policy lapsing. Ask for personal details for 'KYC verification' and a premium payment via UPI. Naturally reveal your phone, the policy number, your email, and UPI ID."
+}
