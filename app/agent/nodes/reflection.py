@@ -36,8 +36,10 @@ def _clean_llm_json(text: str) -> str:
     else:
         return text.strip()
 
-    # 3. Remove JS-style inline comments
-    text = re.sub(r'//[^\n]*', '', text)
+    # 3. Remove JS-style inline comments, but NOT URL protocols (e.g., https://)
+    # This regex looks for // that is NOT preceded by : (simple heuristic for protocols)
+    text = re.sub(r'(?<!:)//[^\n]*', '', text)
+
 
     # 4. Remove trailing commas before } or ]
     text = re.sub(r',\s*([}\]])', r'\1', text)

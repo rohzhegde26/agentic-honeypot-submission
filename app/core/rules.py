@@ -126,13 +126,14 @@ SCAM_TYPE_UNKNOWN = "unknown"
 
 # Mapping of keywords to scam types for classification
 SCAM_TYPE_KEYWORDS = {
-    SCAM_TYPE_BANK: ["bank", "sbi", "account", "blocked", "kyc", "card", "atm", "branch"],
-    SCAM_TYPE_UPI: ["upi", "paytm", "gpay", "phonepe", "cashback", "wallet", "qr code", "claim"],
-    SCAM_TYPE_PHISHING: ["link", "click", "url", "website", "http", "www", "portal", "login", "update"],
-    SCAM_TYPE_JOB: ["job", "salary", "work from home", "hiring", "vacancy", "task", "rating", "telegram"],
-    SCAM_TYPE_INVESTMENT: ["investment", "crypto", "bitcoin", "trade", "profit", "trading", "signal"],
-    SCAM_TYPE_EMERGENCY: ["hospital", "accident", "emergency", "stuck", "help", "police", "arrest"],
+    SCAM_TYPE_BANK: ["bank", "sbi", "account", "blocked", "kyc", "card", "atm", "branch", "manager", "support", "customer care"],
+    SCAM_TYPE_UPI: ["upi", "paytm", "gpay", "phonepe", "cashback", "wallet", "qr code", "claim", "reward", "offer", "gift"],
+    SCAM_TYPE_PHISHING: ["link", "click", "url", "website", "http", "www", "portal", "login", "update", "verify", "secure"],
+    SCAM_TYPE_JOB: ["job", "salary", "work from home", "hiring", "vacancy", "task", "rating", "telegram", "earn", "income"],
+    SCAM_TYPE_INVESTMENT: ["investment", "crypto", "bitcoin", "trade", "profit", "trading", "signal", "binance", "coin"],
+    SCAM_TYPE_EMERGENCY: ["hospital", "accident", "emergency", "stuck", "help", "police", "arrest", "relative", "money", "urgent"],
 }
+
 
 
 
