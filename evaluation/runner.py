@@ -135,6 +135,21 @@ class EvaluationRunner:
 
             print(f"\n  Score: {result.total_score}/100 (weight: {scenario.weight}%)")
 
+            # Trigger per-scenario Windows notification
+            try:
+                import sys
+                if sys.platform == "win32":
+                    import ctypes
+                    # 0x40 is MB_ICONINFORMATION, 0x0 is MB_OK
+                    ctypes.windll.user32.MessageBoxW(
+                        0, 
+                        f"Scenario Complete: {scenario.name}\nScore: {result.total_score}/100\nProgress: {i+1}/{len(self.config.scenarios)}", 
+                        "Honeypot Evaluation Progress", 
+                        0x40 | 0x0
+                    )
+            except Exception:
+                pass
+
         # Calculate final scores
         raw_score = sum(r.total_score for r in scenario_results) / len(scenario_results) if scenario_results else 0
         weighted_score = sum(

@@ -163,6 +163,15 @@ Examples:
 
     print(f"\n  Full report: {report_path}")
     print(f"{'='*60}\n")
+    
+    # Trigger a Windows notification to alert the user that the tests are complete
+    try:
+        if sys.platform == "win32":
+            import ctypes
+            # 0x40 is MB_ICONINFORMATION, 0x0 is MB_OK
+            ctypes.windll.user32.MessageBoxW(0, f"The evaluation suite has finished running!\n\nFinal Score: {result.weighted_score:.2f} / 100", "Evaluation Complete", 0x40 | 0x0)
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":
