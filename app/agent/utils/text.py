@@ -48,8 +48,8 @@ def apply_elderly_formatting(text: str) -> str:
         sentence = sentences[i]
         punctuation = sentences[i+1]
         
-        # 30% chance to turn period into ellipsis
-        if punctuation == "." and random.random() < 0.3:
+        # 5% chance to turn period into ellipsis (reduced from 30% for realism)
+        if punctuation == "." and random.random() < 0.05:
             punctuation = "..."
             
         processed_sentences.append(sentence + punctuation)

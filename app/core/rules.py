@@ -210,8 +210,8 @@ IMPORTANT: START YOUR RESPONSE WITH '{{' AND END WITH '}}'. NO PREAMBLE. NO MARK
 # Safe responses when LLM is completely unavailable
 # Cycle through these to maintain conversation flow
 SCRIPT_FALLBACK_RESPONSES: List[str] = [
-    "Sorry, my phone is acting up. One second...",
-    "One minute, the bank app is loading very slowly...",
+    "Sorry, my phone is acting up. One second.",
+    "One minute, the bank app is loading very slowly.",
     "Signal is weak here, I am trying to open the message again.",
     "I am looking for my glasses, please wait one minute.",
     "Sorry, my internet is not working properly. What were you saying?",

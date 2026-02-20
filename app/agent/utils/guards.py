@@ -10,17 +10,19 @@ def strip_narrator_leaks(text: str) -> str:
     """
     # 1. Patterns like "Thinking: ...", "Action: ...", "Internal Thought: ...", "<thought>...</thought>"
     patterns = [
-        r"(?i)^(thinking|action|internal\s+thought|thought|response|understood|okay|ok|noted)\s*[:.]\s*",
+        r"(?i)^(thinking|action|internal\s+thought|thought|response|understood|okay|ok|noted|instruction)\s*[:.]\s*",
         r"(?i)\(thinking.*?\)",
         r"(?i)\[thinking.*?\]",
         r"(?i)\*thinking.*?\*",
+        r"(?i)<think>.*?</think>",
         r"(?i)<thought>.*?</thought>",
         r"(?i)^as\s+an\s+ai\s+.*?\s*,\s*",
-        r"(?i)^as\s+(a|the)\s+.*?\s*,\s*",
+        r"(?i)^as\s+(?:a|the|prof|mr|mrs|ms)\s+.*?\s*[:,-]\s*",
         r"(?i)^i\s+will\s+(now\s+)?(talk|respond|message|act)\s+as\s+.*?\s*[:.-]\s*",
         r"(?i)^identity\s*:\s*phone\s*:\s*.*?\s*ifsc\s*:\s*.*?\b",
-        r"(?i)^(phase|language|instruction)\s*:\s*.*?\n?",
-        r"(?i)^under\s+stood\s+sir\s*", # Catches some weird spacing
+        r"(?i)^(phase|language|instruction|topic|active|red-flag|checklist)\s*:\s*.*?\n?",
+        r"(?i)^under\s*stood\s*sir\s*", 
+        r"(?i)^i\s+should\s+.*?\s*[:.-]\s*",
     ]
     
     cleaned = text

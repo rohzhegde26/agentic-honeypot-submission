@@ -322,16 +322,7 @@ async def webhook(
         background_tasks.add_task(reflection_task_wrapper, request.sessionId, session_manager)
     
     # Calculate Engagement Metrics (required for per-turn structure points)
-    first_msg_ts = session.messages[0].get("timestamp") if session.messages else None
-    engagement_duration = 0
-    if first_msg_ts:
-        try:
-            from datetime import datetime
-            first_dt = datetime.fromisoformat(first_msg_ts.replace('Z', '+00:00'))
-            now_dt = datetime.utcnow()
-            engagement_duration = int((now_dt - first_dt).total_seconds())
-        except Exception:
-            pass
+    engagement_duration = int(time.time() - session.start_time)
 
     # Check if callback should fire (confirmed scam + intel extracted + not already sent)
     from app.services.callback_service import should_send_callback, send_final_report
@@ -352,7 +343,7 @@ async def webhook(
         sessionId=session.session_id,
         totalMessagesExchanged=len(session.messages),
         engagementDurationSeconds=engagement_duration,
-        extractedIntelligence=session.extracted_intelligence.model_dump(),
+        extractedIntelligence=session.extracted_intelligence.model_dump() if hasattr(session.extracted_intelligence, 'model_dump') else session.extracted_intelligence,
         engagementMetrics={
             "totalMessagesExchanged": len(session.messages),
             "engagementDurationSeconds": engagement_duration

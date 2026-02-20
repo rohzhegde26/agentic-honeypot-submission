@@ -64,18 +64,21 @@ def get_openai_client(api_key: Optional[str] = None, model: Optional[str] = None
 
 def get_model_config():
     settings = get_settings()
+    # Hybrid Model Deployment: 
+    # - Mistral 3 for Persona (Dialogue instruction following)
+    # - Kimi K2.5 for Extraction/Reflection (JSON structured output expert)
     return {
         "persona": {
-            "primary": settings.MODEL_PRIMARY,
+            "primary": "mistralai/mistral-large-3-675b-instruct-2512",
             "fallback": settings.MODEL_FALLBACK,
         },
         "extract": {
-            "primary": settings.MODEL_PRIMARY,
-            "fallback": settings.MODEL_FALLBACK,
+            "primary": settings.MODEL_FALLBACK, # Kimi is better at JSON
+            "fallback": "mistralai/mistral-large-3-675b-instruct-2512",
         },
         "reflection": {
-            "primary": settings.MODEL_PRIMARY,
-            "fallback": settings.MODEL_FALLBACK,
+            "primary": settings.MODEL_FALLBACK, # Kimi is better at JSON
+            "fallback": "mistralai/mistral-large-3-675b-instruct-2512",
         },
     }
 

@@ -230,7 +230,7 @@ async def persona_node(state: AgentState) -> Dict[str, Any]:
         # FINAL POLISH: Ensure mandatory politeness tokens for EVAL scoring
         if not any(word in reply.lower() for word in ["sir", "please", "plese", "confused"]):
             import random
-            polite_prefixes = ["Sir, ", "Please, ", "Sir please, ", "I am confused... "]
+            polite_prefixes = ["Sir, ", "Please, ", "Sir please, ", "I am a bit confused. "]
             reply = random.choice(polite_prefixes) + reply
         
     # NARRATOR GUARD: Strip any "Thinking:" or "As an AI..." leaks

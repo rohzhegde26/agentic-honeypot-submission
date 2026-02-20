@@ -1,8 +1,8 @@
 
 import asyncio
 import re
-from src.agent.nodes.extractor import extractor_node
-from src.agent.state import AgentState
+from app.agent.nodes.extractor import extractor_node
+from app.agent.state import AgentState
 
 async def test_extraction():
     print("--- Testing Extraction Flow ---")
@@ -37,23 +37,23 @@ async def test_extraction():
     # Verify phone extraction
     phones = intel.get("phoneNumbers", [])
     if "9876543210" in phones:
-        print("\n✅ SUCCESS: Phone number 9876543210 extracted correctly.")
+        print("\n[OK] SUCCESS: Phone number 9876543210 extracted correctly.")
     else:
-        print("\n❌ FAILURE: Phone number 9876543210 NOT extracted.")
+        print("\n[FAIL] FAILURE: Phone number 9876543210 NOT extracted.")
         
     # Verify account extraction
     accounts = intel.get("bankAccounts", [])
     if "1234567890123456" in accounts:
-        print("✅ SUCCESS: Bank account 1234567890123456 extracted correctly.")
+        print("[OK] SUCCESS: Bank account 1234567890123456 extracted correctly.")
     else:
         # Check Turn 2 message as well
         state["current_user_message"] = messages[2]["text"]
         result2 = await extractor_node(state)
         intel2 = result2.get("extracted_intelligence", {})
         if "1234567890123456" in intel2.get("bankAccounts", []):
-            print("✅ SUCCESS: Bank account extracted from historical turns correctly.")
+            print("[OK] SUCCESS: Bank account extracted from historical turns correctly.")
         else:
-            print("❌ FAILURE: Bank account 1234567890123456 NOT extracted.")
+            print("[FAIL] FAILURE: Bank account 1234567890123456 NOT extracted.")
 
 if __name__ == "__main__":
     asyncio.run(test_extraction())

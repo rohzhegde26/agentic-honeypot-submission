@@ -42,9 +42,9 @@ class Settings(BaseSettings):
     FIREWORKS_API_KEY: str = ""
     FIREWORKS_BASE_URL: str = "https://api.fireworks.ai/inference/v1"
     
-    # Model Configuration - Fireworks Kimi as Primary, Mistral as Fallback
-    MODEL_PRIMARY: str = "accounts/fireworks/models/kimi-k2p5"
-    MODEL_FALLBACK: str = "mistralai/mistral-large-3-675b-instruct-2512"
+    # Model Configuration - Mistral Large 3 as Primary for stability and speed
+    MODEL_PRIMARY: str = "mistralai/mistral-large-3-675b-instruct-2512"
+    MODEL_FALLBACK: str = "accounts/fireworks/models/minimax-m2p5"
     
     # Debug Mode
     DEBUG: bool = False

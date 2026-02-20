@@ -135,11 +135,12 @@ async def global_exception_handler(request, exc: Exception):
         content={
             "detail": "An internal system error occurred.",
             "type": type(exc).__name__,
-            "hint": "Ensure all required environment variables (NVIDIA_API_KEY, UPSTASH_REDIS_*) are configured correctly."
-        },
+            "hint": "Ensure all required environment variables are configured correctly."
+        }
     )
 
 
+@app.get("/", tags=["Infrastructure"], summary="Health Check")
 @app.get("/", tags=["System"], summary="GUI Dashboard")
 async def root():
     """Root endpoint — serves interactive GUI dashboard."""

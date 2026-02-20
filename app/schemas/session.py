@@ -2,6 +2,7 @@
 Pydantic model for session state stored in Redis.
 Matches the LangGraph AgentState schema from 07_LangGraph_State_Schema.md
 """
+import time
 from typing import List, Dict, Optional, Literal
 from pydantic import BaseModel, Field
 from .callback import ExtractedIntelligence
@@ -14,6 +15,7 @@ class SessionData(BaseModel):
     """
     # Session Identifiers
     session_id: str = Field(..., description="Unique session ID")
+    start_time: float = Field(default_factory=time.time, description="Session creation epoch")
     
     # Message Flow (store minimal data to keep size < 1KB)
     messages: List[Dict] = Field(default_factory=list, description="Conversation log")

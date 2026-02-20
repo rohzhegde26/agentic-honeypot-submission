@@ -4,6 +4,7 @@ Implements async HTTP client with retry logic and rate limiting awareness.
 """
 import logging
 import asyncio
+import time
 from typing import Any, Dict, List
 
 import httpx
@@ -107,10 +108,16 @@ async def send_final_report(session: SessionData) -> bool:
     settings = get_settings()
     
     # Build the callback payload per competition spec
+    duration = int(time.time() - session.start_time)
     payload = CallbackPayload(
         sessionId=session.session_id,
         scamDetected=session.is_scam_confirmed,
         totalMessagesExchanged=len(session.messages),
+        engagementDurationSeconds=duration,
+        engagementMetrics={
+            "totalMessagesExchanged": len(session.messages),
+            "engagementDurationSeconds": duration
+        },
         extractedIntelligence=_build_callback_intelligence(session.extracted_intelligence),
         agentNotes=_build_callback_notes(session.agent_notes, session.extracted_intelligence),
     )

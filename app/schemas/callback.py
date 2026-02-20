@@ -25,6 +25,12 @@ NON_CALLBACK_INTEL_FIELDS = (
 )
 
 
+class EngagementMetrics(BaseModel):
+    """Engagement quality metrics for evaluation."""
+    totalMessagesExchanged: int = Field(..., description="Total message count")
+    engagementDurationSeconds: int = Field(..., description="Duration in seconds")
+
+
 class ExtractedIntelligence(BaseModel):
     """Intelligence extracted from the scammer during conversation."""
     bankAccounts: List[str] = Field(default_factory=list, description="Bank account numbers")
@@ -60,6 +66,7 @@ class CallbackPayload(BaseModel):
     scamDetected: bool = Field(..., description="Whether scam was confirmed")
     totalMessagesExchanged: int = Field(..., description="Total message count")
     engagementDurationSeconds: int = Field(default=0, description="Redundant duration")
+    engagementMetrics: EngagementMetrics = Field(..., description="Nested engagement quality metrics")
     extractedIntelligence: CallbackExtractedIntelligence = Field(
         default_factory=CallbackExtractedIntelligence,
         description="Extracted scammer information"
