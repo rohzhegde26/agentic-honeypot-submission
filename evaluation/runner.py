@@ -7,12 +7,12 @@ import logging
 import time
 import uuid
 from dataclasses import dataclass, field
-from tqdm import tqdm
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
 
 from evaluation.config import EvalConfig, ScenarioConfig
 from evaluation.api_client import HoneypotAPIClient, APIResponse
+from evaluation.gui_progress import EvaluationProgressWindow
 from evaluation.scammer_sim import ScammerSimulator
 from evaluation.scorers.scam_detection import score_scam_detection
 from evaluation.scorers.intelligence import score_intelligence_extraction
@@ -116,27 +116,28 @@ class EvaluationRunner:
 
     async def run(self) -> EvaluationResult:
         """Run the complete evaluation."""
-        tqdm.write(f"\n{'='*60}")
-        tqdm.write(f"  HONEYPOT API EVALUATION SUITE")
-        tqdm.write(f"  Target: {self.config.target_url}")
-        tqdm.write(f"  Scenarios: {len(self.config.scenarios)}")
-        tqdm.write(f"  Max turns per scenario: {self.config.max_turns}")
-        tqdm.write(f"{'='*60}\n")
+        print(f"\n{'='*60}")
+        print(f"  HONEYPOT API EVALUATION SUITE")
+        print(f"  Target: {self.config.target_url}")
+        print(f"  Scenarios: {len(self.config.scenarios)}")
+        print(f"  Max turns per scenario: {self.config.max_turns}")
+        print(f"{'='*60}\n")
+
+        self.gui = EvaluationProgressWindow(len(self.config.scenarios), self.config.max_turns)
 
         scenario_results = []
 
-        scenario_pbar = tqdm(self.config.scenarios, desc="Scenarios", position=0, leave=True)
-        for i, scenario in enumerate(scenario_pbar):
-            scenario_pbar.set_description(f"Scenario {i+1}/{len(self.config.scenarios)}")
-            tqdm.write(f"\n{'─'*50}")
-            tqdm.write(f"  Scenario {i+1}/{len(self.config.scenarios)}: {scenario.name}")
-            tqdm.write(f"  Type: {scenario.scam_type} | Weight: {scenario.weight}%")
-            tqdm.write(f"{'─'*50}\n")
+        for i, scenario in enumerate(self.config.scenarios):
+            if hasattr(self, "gui"): self.gui.update_scenario(i+1, scenario.name)
+            print(f"\n{'─'*50}")
+            print(f"  Scenario {i+1}/{len(self.config.scenarios)}: {scenario.name}")
+            print(f"  Type: {scenario.scam_type} | Weight: {scenario.weight}%")
+            print(f"{'─'*50}\n")
 
             result = await self._run_scenario(scenario)
             scenario_results.append(result)
 
-            tqdm.write(f"\n  Score: {result.total_score}/100 (weight: {scenario.weight}%)")
+            print(f"\n  Score: {result.total_score}/100 (weight: {scenario.weight}%)")
 
             # Trigger per-scenario Windows notification
             try:
@@ -170,11 +171,12 @@ class EvaluationRunner:
             final_score=final_score,
         )
 
-        tqdm.write(f"\n{'='*60}")
-        tqdm.write(f"  FINAL SCORE: {final_score:.2f} / 90 (max with 0.9 multiplier)")
-        tqdm.write(f"  Weighted Raw: {weighted_score:.2f} / 100")
-        tqdm.write(f"{'='*60}\n")
+        print(f"\n{'='*60}")
+        print(f"  FINAL SCORE: {final_score:.2f} / 90 (max with 0.9 multiplier)")
+        print(f"  Weighted Raw: {weighted_score:.2f} / 100")
+        print(f"{'='*60}\n")
 
+        if hasattr(self, "gui"): self.gui.close()
         return eval_result
 
     async def _run_scenario(self, scenario: ScenarioConfig) -> ScenarioResult:
@@ -188,9 +190,10 @@ class EvaluationRunner:
         start_time = time.time()
         current_message = scenario.initial_message
 
-        for turn_num in tqdm(range(1, max_turns + 1), desc="Turns", position=1, leave=False):
-            tqdm.write(f"  Turn {turn_num}/{max_turns}:")
-            tqdm.write(f"    Scammer: {current_message[:80]}{'...' if len(current_message) > 80 else ''}")
+        for turn_num in range(1, max_turns + 1):
+            if hasattr(self, "gui"): self.gui.update_turn(turn_num, max_turns)
+            print(f"  Turn {turn_num}/{max_turns}:")
+            print(f"    Scammer: {current_message[:80]}{'...' if len(current_message) > 80 else ''}")
 
             # Send scammer message to API
             response = await self.client.send_message(
@@ -202,7 +205,7 @@ class EvaluationRunner:
             responses.append(response)
 
             if not response.is_valid:
-                tqdm.write(f"    ⚠️  Invalid response: {response.error}")
+                print(f"    ⚠️  Invalid response: {response.error}")
                 # Record a turn with error
                 turns.append(ConversationTurn(
                     turn_number=turn_num,
@@ -215,8 +218,8 @@ class EvaluationRunner:
                 break
 
             agent_reply = response.reply
-            tqdm.write(f"    Agent:   {agent_reply[:80]}{'...' if len(agent_reply) > 80 else ''}")
-            tqdm.write(f"    ({response.response_time_ms}ms)")
+            print(f"    Agent:   {agent_reply[:80]}{'...' if len(agent_reply) > 80 else ''}")
+            print(f"    ({response.response_time_ms}ms)")
 
             # Record the turn
             turns.append(ConversationTurn(
@@ -245,7 +248,7 @@ class EvaluationRunner:
             # Check if conversation should end (status = terminated, or max turns)
             status = response.raw.get("status", "")
             if status in ("terminated", "scam_confirmed", "completed"):
-                tqdm.write(f"    → Conversation ended (status: {status})")
+                print(f"    → Conversation ended (status: {status})")
                 break
 
             # Generate next scammer message
