@@ -1486,3 +1486,7 @@ timestamp,model,task,prompt_tokens,completion_tokens,total_tokens
 2026-02-20 12:18:19,mistralai/mistral-large-3-675b-instruct-2512,reflection,575,223,798
 2026-02-20 12:18:19,mistralai/mistral-large-3-675b-instruct-2512,persona,1077,90,1167
 2026-02-20 12:18:29,mistralai/mistral-large-3-675b-instruct-2512,reflection,277,28,305
+2026-02-20 12:18:33,mistralai/mistral-large-3-675b-instruct-2512,persona,1100,105,1205
+2026-02-20 12:18:42,mistralai/mistral-large-3-675b-instruct-2512,reflection,311,35,346
+2026-02-20 12:18:46,mistralai/mistral-large-3-675b-instruct-2512,extract,298,79,377
+2026-02-20 12:18:46,mistralai/mistral-large-3-675b-instruct-2512,persona,1158,91,1249
