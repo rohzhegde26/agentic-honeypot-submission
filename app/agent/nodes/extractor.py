@@ -143,7 +143,7 @@ def _extract_suspicious_keywords(text: str) -> List[str]:
     return found
 
 
-def _parse_llm_extraction(response: str) -> Dict[str, List[str]]:
+def _parse_llm_extraction(response: str) -> Dict[str, Any]:
     """Parse LLM JSON response for extracted data."""
     result = {
         "upiIds": [], 
@@ -153,6 +153,7 @@ def _parse_llm_extraction(response: str) -> Dict[str, List[str]]:
         "scammerNames": [],
         "staffIds": [],
         "emailAddresses": [],
+        "agentNotes": "",
     }
     
     # Try to find JSON in response
@@ -179,6 +180,8 @@ def _parse_llm_extraction(response: str) -> Dict[str, List[str]]:
             result["staffIds"] = [_clean_item(str(x)) for x in data["staffIds"] if x]
         if isinstance(data.get("emailAddresses"), list):
             result["emailAddresses"] = [_clean_item(str(x)) for x in data["emailAddresses"] if x]
+        if isinstance(data.get("agentNotes"), str):
+            result["agentNotes"] = _clean_item(data["agentNotes"])
             
     except (json.JSONDecodeError, AttributeError):
         pass
@@ -233,6 +236,7 @@ async def extractor_node(state: AgentState) -> Dict[str, Any]:
     llm_names = []
     llm_staff = []
     llm_emails = []
+    llm_agent_notes = ""
     
     from app.config import get_settings
     settings = get_settings()
@@ -259,6 +263,7 @@ async def extractor_node(state: AgentState) -> Dict[str, Any]:
         llm_names = llm_data["scammerNames"]
         llm_staff = llm_data["staffIds"]
         llm_emails = llm_data.get("emailAddresses", [])
+        llm_agent_notes = llm_data.get("agentNotes", "")
     
     # Step 3: Identity Filtering (Podium Hardening)
     # Filter out our own fake bait data so it's not reported as scammer intelligence
@@ -355,6 +360,10 @@ async def extractor_node(state: AgentState) -> Dict[str, Any]:
     if extra_notes:
         existing_notes = merged_intel.get("agent_notes", "") # use existing if any
         notes = (notes + "\n" + "\n".join(extra_notes)).strip()
+        
+    # Append any dynamic agentNotes found by the LLM
+    if llm_agent_notes:
+        notes = (notes + "\n" + llm_agent_notes).strip()
 
     duration_ms = round((time.perf_counter() - t_start) * 1000, 1)
     

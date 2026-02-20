@@ -163,9 +163,10 @@ BANK_ACCOUNT_PATTERN: Pattern = re.compile(r'\b\d{9,18}\b')
 STAFF_ID_PATTERN: Pattern = re.compile(r'(?i)(?:staff\s*id|employee\s*id|id\s*no|my\s*id|ref\s*id)[\s:]*([A-Z0-9-]{3,12})')
 
 # Case/Order/Policy Number patterns (Higher-order intelligence)
-CASE_ID_PATTERN: Pattern = re.compile(r'(?i)(?:case\s*id|case\s*no|case\s*number)[\s:]*([A-Z0-9-]{4,15})')
-ORDER_NUMBER_PATTERN: Pattern = re.compile(r'(?i)(?:order\s*id|order\s*no|order\s*number)[\s:]*([A-Z0-9-]{4,15})')
-POLICY_NUMBER_PATTERN: Pattern = re.compile(r'(?i)(?:policy\s*no|policy\s*number|policy\s*id)[\s:]*([A-Z0-9-]{4,15})')
+# Updated to support varied 2025 formats like EB-20241587 and CUS-IND-2024-56789
+CASE_ID_PATTERN: Pattern = re.compile(r'(?i)(?:case\s*id|case\s*no|case\s*number)[\s:]*([A-Za-z0-9-]+)')
+ORDER_NUMBER_PATTERN: Pattern = re.compile(r'(?i)(?:order\s*id|order\s*no|order\s*number)[\s:]*([A-Za-z0-9-]+)')
+POLICY_NUMBER_PATTERN: Pattern = re.compile(r'(?i)(?:policy\s*no|policy\s*number|policy\s*id)[\s:]*([A-Za-z0-9-]+)')
 
 
 # IFSC Code pattern (4 uppercase + 0 + 6 alphanumeric) - Bank branch identifier
@@ -196,7 +197,8 @@ Return JSON only:
     "bankAccounts": ["list of bank account numbers (9-18 digits)"],
     "scammerNames": ["names of persons mentioned, e.g., Sharma ji, Officer Amit"],
     "staffIds": ["any employee or staff IDs mentioned"],
-    "emailAddresses": ["any email addresses found"]
+    "emailAddresses": ["any email addresses found"],
+    "agentNotes": "Extract ANY specific reference numbers, case IDs, order numbers, policy numbers, or generic alphanumeric ID strings that do not fit into the other arrays. Output them as a single string, e.g., 'Found Case ID: EB-20241587, Policy: LIC-1234'. Leave blank if none found."
 }
 
 If nothing found, return empty lists. JSON only, no explanation."""

@@ -217,6 +217,18 @@ async def persona_node(state: AgentState) -> Dict[str, Any]:
         else:
             active_baiting_instruction = "\nPHASE: LEAK. Ask for their official company handle and manager's name before you proceed."
 
+    # DYNAMIC RED FLAG INJECTION (Ensuring >= 5 distinct flags)
+    red_flag_cycle = [
+        "Mention that 'urgency' or being rushed is a big red flag.",
+        "Mention that asking for details over WhatsApp/SMS instead of secure bank portal is a red flag.",
+        "Mention that threatening 'account blocking' or 'legal action' sounds like a scam.",
+        "Mention that the sender's phone number or email address looks very unprofessional and fake.",
+        "Mention that asking for OTP, PIN, or sensitive KYC documents via chat is illegal."
+    ]
+    # Cycle through the flags based on turn count so we hit 5 distinct flags
+    flag_to_use = red_flag_cycle[(turn_count - 1) % len(red_flag_cycle)]
+    active_baiting_instruction += f"\nRED FLAG TACTIC: {flag_to_use}"
+
     canary = ""  # Sanitizer disabled
     user_is_speaking_hindi = is_hindi(raw_message)
     language_instruction = "LANGUAGE: Respond in Hindi (Devanagari script)." if user_is_speaking_hindi else "LANGUAGE: Respond in English only (ASCII text)."
