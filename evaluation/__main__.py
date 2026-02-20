@@ -80,6 +80,17 @@ Examples:
         action="store_true",
         help="Enable verbose logging",
     )
+    parser.add_argument(
+        "--accelerated",
+        action="store_true",
+        help="Enable accelerated time simulation",
+    )
+    parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=5,
+        help="Number of scenarios to run concurrently (default: 5)",
+    )
 
     args = parser.parse_args()
 
@@ -119,6 +130,8 @@ Examples:
         scenarios=scenarios,
         use_llm_scammer=not args.no_llm,
         turn_delay=args.delay,
+        accelerated=args.accelerated,
+        concurrency=args.concurrency,
     )
 
     # Run evaluation

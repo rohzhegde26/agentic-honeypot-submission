@@ -32,6 +32,7 @@ class AgentState(TypedDict):
     # Message Flow
     messages: Annotated[List[Dict], operator.add]  # Append-only log
     current_user_message: str
+    simulated_elapsed_time: float
     
     # Analysis State
     scam_confidence: float  # 0.0 to 1.0

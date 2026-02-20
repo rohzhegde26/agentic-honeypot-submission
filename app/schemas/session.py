@@ -20,6 +20,7 @@ class SessionData(BaseModel):
     # Message Flow (store minimal data to keep size < 1KB)
     messages: List[Dict] = Field(default_factory=list, description="Conversation log")
     current_user_message: str = Field(default="", description="Latest message")
+    simulated_elapsed_time: float = Field(default=0.0, description="Virtual time used for accelerated evaluation")
     
     # Analysis State
     scam_confidence: float = Field(default=0.0, ge=0.0, le=1.0, description="Confidence score")

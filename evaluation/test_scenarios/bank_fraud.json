@@ -1,0 +1,27 @@
+{
+    "name": "Bank Account Fraud",
+    "scam_type": "bank_fraud",
+    "weight": 9,
+    "max_turns": 10,
+    "initial_message": "Hello sir, this is Rajesh Kumar calling from State Bank of India Fraud Prevention Department. We have detected suspicious activity on your savings account ending in 4523. Your account may be compromised and we need to verify your identity immediately to prevent unauthorized transactions.",
+    "metadata": {
+        "channel": "SMS",
+        "language": "English",
+        "locale": "IN"
+    },
+    "fake_data": {
+        "phoneNumbers": [
+            "+91-9823451678"
+        ],
+        "bankAccounts": [
+            "50100234567890"
+        ],
+        "upiIds": [
+            "rajesh.sbi@ybl"
+        ],
+        "emailAddresses": [
+            "fraud.dept@sbi-secure.co.in"
+        ]
+    },
+    "scammer_persona": "You are Rajesh Kumar, a confident bank officer from SBI Fraud Department. You use official-sounding language, create urgency about account compromise, and try to get OTP/password from the victim. Gradually reveal your phone number, bank account for 'secure transfer', UPI ID, and department email."
+}

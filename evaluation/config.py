@@ -74,6 +74,8 @@ class EvalConfig:
     use_llm_scammer: bool = True
     # Delay between turns (seconds) to simulate realistic timing
     turn_delay: float = 1.0
+    accelerated: bool = False
+    concurrency: int = 1
 
 
 def load_scenario_from_dict(data: Dict[str, Any]) -> ScenarioConfig:

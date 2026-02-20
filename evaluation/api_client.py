@@ -131,3 +131,25 @@ class HoneypotAPIClient:
                 0,
                 elapsed_ms,
             )
+
+    async def update_config(self, config_updates: Dict[str, Any]) -> bool:
+        """
+        Update runtime API configuration (e.g. enabling accelerated testing).
+        """
+        try:
+            # Strip /webhook if present from base_url for admin endpoints
+            admin_base = self.base_url.replace("/webhook", "") if self.base_url.endswith("/webhook") else self.base_url
+            
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    f"{admin_base}/admin/config",
+                    json=config_updates,
+                    headers=self._build_headers(),
+                )
+            if response.status_code != 200:
+                logger.error(f"Failed config update, status={response.status_code}")
+                return False
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update config: {e}")
+            return False

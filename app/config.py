@@ -55,7 +55,8 @@ class Settings(BaseSettings):
     FLAG_VERBOSE_LOGGING: bool = False   # Enable detailed per-node debug logs
     FLAG_THINKING: bool = True           # Enable thinking mode for Kimi models (disable for faster responses)
     FLAG_GUARDRAIL: bool = False         # Enable Guardrail LLM check (NVIDIA NIM)
-    
+    FLAG_ACCELERATED_TESTING: bool = False # Simulate interaction delays to speed up evaluation
+
     # Prompt Strategy: "default", "aggressive", "defensive"
     PROMPT_STRATEGY: str = "default"
     

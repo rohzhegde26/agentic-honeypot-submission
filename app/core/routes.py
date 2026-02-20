@@ -241,6 +241,7 @@ async def webhook(
                 existing_intel=session.extracted_intelligence.model_dump() if hasattr(session.extracted_intelligence, 'model_dump') else dict(session.extracted_intelligence),
                 intel_found_at_turn=session.intel_found_at_turn,
                 persona_details=persona_details,
+                simulated_elapsed_time=session.simulated_elapsed_time,
             ),
             timeout=AGENT_TIMEOUT_SECONDS,
         )
@@ -273,6 +274,7 @@ async def webhook(
         session.termination_reason = agent_result.get("termination_reason", session.termination_reason)
         session.agent_notes = agent_result.get("agent_notes", session.agent_notes)
         session.intel_found_at_turn = agent_result.get("intel_found_at_turn", session.intel_found_at_turn)
+        session.simulated_elapsed_time = agent_result.get("simulated_elapsed_time", session.simulated_elapsed_time)
         
         reply = agent_result.get("agent_reply", "Hello? Who is this?")
         
@@ -323,7 +325,8 @@ async def webhook(
         background_tasks.add_task(reflection_task_wrapper, request.sessionId, session_manager)
     
     # Calculate Engagement Metrics (required for per-turn structure points)
-    engagement_duration = int(time.time() - session.start_time)
+    real_engagement_duration = int(time.time() - session.start_time)
+    engagement_duration = real_engagement_duration + int(session.simulated_elapsed_time)
 
     # Check if callback should fire (confirmed scam + intel extracted + not already sent)
     from app.services.callback_service import should_send_callback, send_final_report
@@ -390,6 +393,7 @@ class ConfigUpdate(BaseModel):
     flag_verbose_logging: Optional[bool] = None
     flag_thinking: Optional[bool] = None
     flag_guardrail: Optional[bool] = None
+    flag_accelerated_testing: Optional[bool] = None
     prompt_strategy: Optional[str] = None  # "default", "aggressive", "defensive"
 
 
@@ -428,6 +432,10 @@ async def admin_config_update(update: ConfigUpdate):
         settings.FLAG_GUARDRAIL = update.flag_guardrail
         changes["FLAG_GUARDRAIL"] = update.flag_guardrail
         
+    if update.flag_accelerated_testing is not None:
+        settings.FLAG_ACCELERATED_TESTING = update.flag_accelerated_testing
+        changes["FLAG_ACCELERATED_TESTING"] = update.flag_accelerated_testing
+        
     if update.prompt_strategy is not None:
         if update.prompt_strategy in ("default", "aggressive", "defensive"):
             settings.PROMPT_STRATEGY = update.prompt_strategy
@@ -455,6 +463,7 @@ async def admin_config_view():
         "FLAG_STALLING": settings.FLAG_STALLING,
         "FLAG_VERBOSE_LOGGING": settings.FLAG_VERBOSE_LOGGING,
         "FLAG_THINKING": settings.FLAG_THINKING,
+        "FLAG_ACCELERATED_TESTING": settings.FLAG_ACCELERATED_TESTING,
         "PROMPT_STRATEGY": settings.PROMPT_STRATEGY,
     }
 

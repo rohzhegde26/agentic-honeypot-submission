@@ -12,6 +12,9 @@ CALLBACK_INTEL_FIELDS = (
     "upiIds",
     "phishingLinks",
     "emailAddresses",
+    "caseIds",
+    "orderNumbers",
+    "policyNumbers",
 )
 
 # Internal-only intelligence keys that must be moved into agentNotes.
@@ -44,6 +47,9 @@ class ExtractedIntelligence(BaseModel):
     ifscCodes: List[str] = Field(default_factory=list, description="Bank IFSC codes")
     panNumbers: List[str] = Field(default_factory=list, description="Indian PAN numbers")
     sebiHandles: List[str] = Field(default_factory=list, description="SEBI @valid handles")
+    caseIds: List[str] = Field(default_factory=list, description="Case IDs like CUS-IND-123")
+    policyNumbers: List[str] = Field(default_factory=list, description="Policy Numbers like LIC-123")
+    orderNumbers: List[str] = Field(default_factory=list, description="Order Numbers like AMZ-123")
 
 
 class CallbackExtractedIntelligence(BaseModel):
@@ -64,12 +70,8 @@ class CallbackPayload(BaseModel):
     """
     sessionId: str = Field(..., description="Session identifier")
     scamDetected: bool = Field(..., description="Whether scam was confirmed")
-    scamType: str = Field(default="unknown", description="Categorized scam type")
-    confidenceLevel: float = Field(default=0.0, description="Scam confidence score")
-
     totalMessagesExchanged: int = Field(..., description="Total message count")
     engagementDurationSeconds: int = Field(default=0, description="Redundant duration")
-    engagementMetrics: EngagementMetrics = Field(..., description="Nested engagement quality metrics")
     extractedIntelligence: CallbackExtractedIntelligence = Field(
         default_factory=CallbackExtractedIntelligence,
         description="Extracted scammer information"

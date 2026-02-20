@@ -123,36 +123,47 @@ class EvaluationRunner:
         print(f"  Max turns per scenario: {self.config.max_turns}")
         print(f"{'='*60}\n")
 
+        if self.config.accelerated:
+            # Enable accelerated testing flag on backend via API
+            print(f"  ⚡ ACCELERATED TESTING ENABLED")
+            success = await self.client.update_config({"flag_accelerated_testing": True})
+            if not success:
+                print("  ⚠️ Failed to enable accelerated mode on backend. Tests will run at normal speed.")
+
         self.gui = EvaluationProgressWindow(len(self.config.scenarios), self.config.max_turns)
 
         scenario_results = []
+        
+        # Concurrency limit (Semaphore) to prevent overwhelming the LLM and API rate limits
+        concurrency_limit = self.config.concurrency if hasattr(self.config, 'concurrency') else 5
+        semaphore = asyncio.Semaphore(concurrency_limit)
+        
+        async def run_scenario_with_semaphore(scenario_idx, scenario):
+            async with semaphore:
+                print(f"\n{'─'*50}")
+                print(f"  [START] Scenario {scenario_idx+1}/{len(self.config.scenarios)}: {scenario.name}")
+                print(f"  Type: {scenario.scam_type} | Weight: {scenario.weight}%")
+                print(f"{'─'*50}")
 
-        for i, scenario in enumerate(self.config.scenarios):
-            if hasattr(self, "gui"): self.gui.update_scenario(i+1, scenario.name)
-            print(f"\n{'─'*50}")
-            print(f"  Scenario {i+1}/{len(self.config.scenarios)}: {scenario.name}")
-            print(f"  Type: {scenario.scam_type} | Weight: {scenario.weight}%")
-            print(f"{'─'*50}\n")
+                result = await self._run_scenario(scenario)
+                
+                print(f"\n  [DONE] {scenario.name} - Score: {result.total_score}/100")
+                if hasattr(self, "gui"): 
+                    self.gui.increment_scenario()
+                return result
 
-            result = await self._run_scenario(scenario)
-            scenario_results.append(result)
+        # Create tasks for all scenarios
+        tasks = [
+            run_scenario_with_semaphore(i, scenario) 
+            for i, scenario in enumerate(self.config.scenarios)
+        ]
 
-            print(f"\n  Score: {result.total_score}/100 (weight: {scenario.weight}%)")
+        # Execute all tasks concurrently
+        scenario_results = await asyncio.gather(*tasks)
 
-            # Trigger per-scenario Windows notification
-            try:
-                import sys
-                if sys.platform == "win32":
-                    import ctypes
-                    # 0x40 is MB_ICONINFORMATION, 0x0 is MB_OK
-                    ctypes.windll.user32.MessageBoxW(
-                        0, 
-                        f"Scenario Complete: {scenario.name}\nScore: {result.total_score}/100\nProgress: {i+1}/{len(self.config.scenarios)}", 
-                        "Honeypot Evaluation Progress", 
-                        0x40 | 0x0
-                    )
-            except Exception:
-                pass
+        if self.config.accelerated:
+            # Disable accelerated testing flag on backend via API
+            await self.client.update_config({"flag_accelerated_testing": False})
 
         # Calculate final scores
         raw_score = sum(r.total_score for r in scenario_results) / len(scenario_results) if scenario_results else 0
@@ -191,9 +202,8 @@ class EvaluationRunner:
         current_message = scenario.initial_message
 
         for turn_num in range(1, max_turns + 1):
-            if hasattr(self, "gui"): self.gui.update_turn(turn_num, max_turns)
-            print(f"  Turn {turn_num}/{max_turns}:")
-            print(f"    Scammer: {current_message[:80]}{'...' if len(current_message) > 80 else ''}")
+            if hasattr(self, "gui"): self.gui.increment_turn()
+            print(f"  [{scenario.name[:10]}...] Turn {turn_num}/{max_turns}: Scammer: {current_message[:40]}...")
 
             # Send scammer message to API
             response = await self.client.send_message(
@@ -218,8 +228,7 @@ class EvaluationRunner:
                 break
 
             agent_reply = response.reply
-            print(f"    Agent:   {agent_reply[:80]}{'...' if len(agent_reply) > 80 else ''}")
-            print(f"    ({response.response_time_ms}ms)")
+            print(f"  [{scenario.name[:10]}...] Turn {turn_num}/{max_turns}: Agent: {agent_reply[:40]}... ({response.response_time_ms}ms)")
 
             # Record the turn
             turns.append(ConversationTurn(
@@ -265,6 +274,11 @@ class EvaluationRunner:
         total_duration = time.time() - start_time
         total_turns = len(turns)
 
+        # Use the engagement duration FROM THE API if available (handles simulated time)
+        final_duration = total_duration
+        if responses and responses[-1].engagement_duration > 0:
+            final_duration = responses[-1].engagement_duration
+
         # Score all categories
         result = ScenarioResult(
             scenario_name=scenario.name,
@@ -273,14 +287,14 @@ class EvaluationRunner:
             session_id=session_id,
             turns=turns,
             total_turns=total_turns,
-            total_duration_seconds=round(total_duration, 1),
+            total_duration_seconds=round(final_duration, 1),
             responses=responses,
         )
 
         result.scam_detection = score_scam_detection(responses)
         result.intelligence_extraction = score_intelligence_extraction(responses, scenario.fake_data)
         result.conversation_quality = score_conversation_quality(responses, total_turns)
-        result.engagement_quality = score_engagement_quality(responses, total_turns, total_duration)
+        result.engagement_quality = score_engagement_quality(responses, total_turns, final_duration)
         result.response_structure = score_response_structure(responses)
 
         return result

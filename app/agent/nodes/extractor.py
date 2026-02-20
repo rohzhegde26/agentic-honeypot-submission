@@ -119,14 +119,23 @@ def _extract_sebi_handles(text: str) -> List[str]:
     from app.core.rules import SEBI_HANDLE_PATTERN
     return SEBI_HANDLE_PATTERN.findall(text)
 
+def _flatten_matches(matches: List[Any]) -> List[str]:
+    flat = []
+    for m in matches:
+        if isinstance(m, tuple):
+            flat.extend([x.strip() for x in m if x.strip()])
+        else:
+            flat.append(m.strip())
+    return flat
+
 def _extract_policy_numbers(text: str) -> List[str]:
-    return POLICY_NUMBER_PATTERN.findall(text)
+    return _flatten_matches(POLICY_NUMBER_PATTERN.findall(text))
 
 def _extract_order_numbers(text: str) -> List[str]:
-    return ORDER_NUMBER_PATTERN.findall(text)
+    return _flatten_matches(ORDER_NUMBER_PATTERN.findall(text))
 
 def _extract_case_ids(text: str) -> List[str]:
-    return CASE_ID_PATTERN.findall(text)
+    return _flatten_matches(CASE_ID_PATTERN.findall(text))
 
 
 
@@ -153,6 +162,9 @@ def _parse_llm_extraction(response: str) -> Dict[str, Any]:
         "scammerNames": [],
         "staffIds": [],
         "emailAddresses": [],
+        "caseIds": [],
+        "orderNumbers": [],
+        "policyNumbers": [],
         "agentNotes": "",
     }
     
@@ -180,6 +192,12 @@ def _parse_llm_extraction(response: str) -> Dict[str, Any]:
             result["staffIds"] = [_clean_item(str(x)) for x in data["staffIds"] if x]
         if isinstance(data.get("emailAddresses"), list):
             result["emailAddresses"] = [_clean_item(str(x)) for x in data["emailAddresses"] if x]
+        if isinstance(data.get("caseIds"), list):
+            result["caseIds"] = [_clean_item(str(x)) for x in data["caseIds"] if x]
+        if isinstance(data.get("orderNumbers"), list):
+            result["orderNumbers"] = [_clean_item(str(x)) for x in data["orderNumbers"] if x]
+        if isinstance(data.get("policyNumbers"), list):
+            result["policyNumbers"] = [_clean_item(str(x)) for x in data["policyNumbers"] if x]
         if isinstance(data.get("agentNotes"), str):
             result["agentNotes"] = _clean_item(data["agentNotes"])
             
@@ -236,11 +254,14 @@ async def extractor_node(state: AgentState) -> Dict[str, Any]:
     llm_names = []
     llm_staff = []
     llm_emails = []
+    llm_case_ids = []
+    llm_order_nums = []
+    llm_policy_nums = []
     llm_agent_notes = ""
     
     from app.config import get_settings
     settings = get_settings()
-    needs_llm = not (regex_upi or regex_links or regex_accounts) and settings.FLAG_LLM_EXTRACTION
+    needs_llm = settings.FLAG_LLM_EXTRACTION and len(message) > 15
     
     if needs_llm:
         context = f"Message: {message}"
@@ -263,6 +284,9 @@ async def extractor_node(state: AgentState) -> Dict[str, Any]:
         llm_names = llm_data["scammerNames"]
         llm_staff = llm_data["staffIds"]
         llm_emails = llm_data.get("emailAddresses", [])
+        llm_case_ids = llm_data.get("caseIds", [])
+        llm_order_nums = llm_data.get("orderNumbers", [])
+        llm_policy_nums = llm_data.get("policyNumbers", [])
         llm_agent_notes = llm_data.get("agentNotes", "")
     
     # Step 3: Identity Filtering (Podium Hardening)
@@ -347,15 +371,24 @@ async def extractor_node(state: AgentState) -> Dict[str, Any]:
         merged_intel["emailAddresses"]
     )
     
+    
     # 6. Extract Extended Intel (Case IDs, Order Numbers, Policy Numbers)
-    case_ids = _extract_case_ids(message)
-    order_nums = _extract_order_numbers(message)
-    policy_nums = _extract_policy_numbers(message)
+    regex_case_ids = list(set(_extract_case_ids(message)) | set(_extract_case_ids(message_normalized)))
+    regex_order_nums = list(set(_extract_order_numbers(message)) | set(_extract_order_numbers(message_normalized)))
+    regex_policy_nums = list(set(_extract_policy_numbers(message)) | set(_extract_policy_numbers(message_normalized)))
+    
+    all_case_ids = list(set(regex_case_ids) | set(llm_case_ids))
+    all_order_nums = list(set(regex_order_nums) | set(llm_order_nums))
+    all_policy_nums = list(set(regex_policy_nums) | set(llm_policy_nums))
+    
+    merged_intel["caseIds"] = list(set(existing.get("caseIds", [])) | set(all_case_ids))
+    merged_intel["orderNumbers"] = list(set(existing.get("orderNumbers", [])) | set(all_order_nums))
+    merged_intel["policyNumbers"] = list(set(existing.get("policyNumbers", [])) | set(all_policy_nums))
     
     extra_notes = []
-    if case_ids: extra_notes.append(f"Case IDs: {', '.join(case_ids)}")
-    if order_nums: extra_notes.append(f"Order Numbers: {', '.join(order_nums)}")
-    if policy_nums: extra_notes.append(f"Policy Numbers: {', '.join(policy_nums)}")
+    if all_case_ids: extra_notes.append(f"Case IDs: {', '.join(all_case_ids)}")
+    if all_order_nums: extra_notes.append(f"Order Numbers: {', '.join(all_order_nums)}")
+    if all_policy_nums: extra_notes.append(f"Policy Numbers: {', '.join(all_policy_nums)}")
     
     if extra_notes:
         existing_notes = merged_intel.get("agent_notes", "") # use existing if any

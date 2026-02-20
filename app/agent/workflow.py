@@ -114,6 +114,7 @@ async def run_agent(
     existing_intel: Dict = None,
     intel_found_at_turn: int = None,
     persona_details: Dict = None,  # Existing persona if any
+    simulated_elapsed_time: float = 0.0,
 ) -> Dict[str, Any]:
     """
     Run the agent workflow for a single turn.
@@ -198,6 +199,7 @@ async def run_agent(
         "channel": metadata.get("channel", "SMS"),
         "language": metadata.get("language", "en"),
         "locale": metadata.get("locale", "IN"),
+        "simulated_elapsed_time": simulated_elapsed_time,
         "timing_log": [],
     }
     
