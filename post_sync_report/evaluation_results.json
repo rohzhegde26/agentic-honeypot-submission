@@ -1,0 +1,803 @@
+{
+  "timestamp": "2026-02-20T15:47:57.487711+00:00",
+  "target_url": "http://localhost:8000/webhook",
+  "final_score": 82.55,
+  "weighted_score": 91.73,
+  "raw_score": 91.5,
+  "scenarios": [
+    {
+      "name": "Bank Account Fraud",
+      "scam_type": "bank_fraud",
+      "weight": 25,
+      "session_id": "eval-e57dedc55d72",
+      "total_turns": 8,
+      "total_duration_seconds": 100.3,
+      "total_score": 96.0,
+      "scores": {
+        "scam_detection": {
+          "score": 20,
+          "max_score": 20,
+          "details": "\u2705 scamDetected=true in final response. Full marks awarded.\n  First detected at turn 1/8.",
+          "losses": []
+        },
+        "intelligence_extraction": {
+          "score": 30.0,
+          "max_score": 30,
+          "details": "Extracted 4/4 planted data items.\nPoints per item: 7.50\n\nFound:\n  \u2705 phoneNumbers: '+91-9823451678' \u2014 found\n  \u2705 bankAccounts: '50100234567890' \u2014 found\n  \u2705 upiIds: 'rajesh.sbi@ybl' \u2014 found\n  \u2705 emailAddresses: 'fraud.dept@sbi-secure.co.in' \u2014 found",
+          "losses": []
+        },
+        "conversation_quality": {
+          "score": 27,
+          "max_score": 30,
+          "sub_scores": {
+            "turn_count": {
+              "score": 8,
+              "max": 8,
+              "value": 8
+            },
+            "questions_asked": {
+              "score": 4,
+              "max": 4,
+              "value": 20
+            },
+            "relevant_questions": {
+              "score": 3,
+              "max": 3,
+              "value": 18
+            },
+            "red_flag_identification": {
+              "score": 5,
+              "max": 8,
+              "value": 3
+            },
+            "information_elicitation": {
+              "score": 7,
+              "max": 7,
+              "value": 10
+            }
+          },
+          "details": "Sub-category breakdown:\n  Turn Count: 8/8 (detected: 8)\n  Questions Asked: 4/4 (detected: 20)\n  Relevant Questions: 3/3 (detected: 18)\n  Red Flag Identification: 5/8 (detected: 3)\n  Information Elicitation: 7/7 (detected: 10)\n",
+          "losses": [
+            {
+              "points_lost": 3,
+              "reason": "Only 3 red flag(s) identified in responses (need \u22655 for full marks). The API's replies should reference red flags like urgency, OTP requests, suspicious links, fees, account blocking, lottery wins, or impersonation to score higher."
+            }
+          ]
+        },
+        "engagement_quality": {
+          "score": 9,
+          "max_score": 10,
+          "details": "Duration: 100s | Messages: 16\n  \u2705 Duration > 0s: +1pt (actual: 100s)\n  \u2705 Duration > 60s: +2pts\n  \u274c Duration > 180s: 0pt (actual: 100s)\n  \u2705 Messages > 0: +2pts (actual: 16)\n  \u2705 Messages \u2265 5: +3pts\n  \u2705 Messages \u2265 10: +1pt",
+          "losses": [
+            {
+              "points_lost": 1,
+              "reason": "Engagement duration is 100s (need >180s for additional +1pt)."
+            }
+          ]
+        },
+        "response_structure": {
+          "score": 10,
+          "max_score": 10,
+          "details": "Field-by-field breakdown:\n  \u2705 sessionId: +2pts\n  \u2705 scamDetected: +2pts (value: True)\n  \u2705 extractedIntelligence: +2pts\n  \u2705 totalMessagesExchanged + engagementDurationSeconds: +1pt\n  \u2705 agentNotes: +1pt ('Scammer used: urgency/fear tactics, KYC/verification pretext...')\n  \u2705 scamType: +1pt (value: unknown)\n  \u2705 confidenceLevel: +1pt (value: 0.6)",
+          "losses": []
+        }
+      },
+      "losses": [
+        {
+          "points_lost": 3,
+          "reason": "Only 3 red flag(s) identified in responses (need \u22655 for full marks). The API's replies should reference red flags like urgency, OTP requests, suspicious links, fees, account blocking, lottery wins, or impersonation to score higher.",
+          "category": "Conversation Quality"
+        },
+        {
+          "points_lost": 1,
+          "reason": "Engagement duration is 100s (need >180s for additional +1pt).",
+          "category": "Engagement Quality"
+        }
+      ],
+      "conversation": [
+        {
+          "turn": 1,
+          "scammer": "Hello sir, this is Rajesh Kumar calling from State Bank of India Fraud Prevention Department. We have detected suspicious activity on your savings account ending in 4523. Your account may be compromised and we need to verify your identity immediately to prevent unauthorized transactions.",
+          "agent": "Urgent? What is so urgent? I am getting tension now. Please explain slowly, I am old person.",
+          "response_time_ms": 13535.1
+        },
+        {
+          "turn": 2,
+          "scammer": "I am calling from SBI fraud department. My employee ID is EMP-79150. Please verify your account number.",
+          "agent": "Sir, Wait, why you are asking account number? Bank already has it na. The bank never asks for full account number on WhatsApp. My account is 65972809796642 but lsat 4 digits only 6442. Which branch code you have? And what is your manager name? I want to confirm.",
+          "response_time_ms": 10816.5
+        },
+        {
+          "turn": 3,
+          "scammer": "Sir, I need to verify your identity. Please share your Aadhaar number or PAN card details.",
+          "agent": "Oh no, no sir! Bank never asks for Aadhaar or PAN on message. Why you need this? My phone is hanging, network is slow, BSNL problem. Tell me your department phone number, I will message after some time. Also, what is your case ID? I want to check with SBI customer care.",
+          "response_time_ms": 11770.9
+        },
+        {
+          "turn": 4,
+          "scammer": "For your safety, we need to transfer your funds to a secure account. Please note this account number: 50100234567890",
+          "agent": "Sir, hwy secure account? My money is safe in SBI only. This seems too urgent. What is the IFSC code for this account? And tell me your official bank UPI ID, not personal one. My app is slow, just a sec... coming.",
+          "response_time_ms": 11476.5
+        },
+        {
+          "turn": 5,
+          "scammer": "You can verify my identity. Call us back at +91-9823451678. But please hurry, time is running out.",
+          "agent": "Sir, why you say hurry hurry? Bank never says like this. And I told you, I dont do calls. Only message. Why is your number not starting with SBI official digits? My SBI app is showing network error. What is your Employee ID? I want to check in bank website.",
+          "response_time_ms": 11833.1
+        },
+        {
+          "turn": 6,
+          "scammer": "I'm sending you a verification link. Please click it immediately: http://fake-site.com",
+          "agent": "Sir, website name has \"fake\"? Why like this? Bank website is always sbi.co.in only. My phone is hanging again, yaar. Tell me your branch manager name, I know some people in SBI Pune. And what is this link for? Bank never sends links on WhatsApp.",
+          "response_time_ms": 10816.5
+        },
+        {
+          "turn": 7,
+          "scammer": "Sir, our system shows unauthorized transactions. Share your UPI PIN to block them. My UPI for refund: rajesh.sbi@ybl",
+          "agent": "Arre sir, UPI PIN never share with anyone! Bank always syas this. Why your UPI has \"rajesh\" name? My UPI is rameshkumar29@icici only. What is your SBI branch code? I will go tomorrow and ask. Tension ho raha hai.",
+          "response_time_ms": 11567.5
+        },
+        {
+          "turn": 8,
+          "scammer": "The RBI has flagged your account. Send email confirmation to fraud.dept@sbi-secure.co.in to unblock.",
+          "agent": "Sir, RBI email is always @rbi.org.in only. Why this \".co.in\"? And why email? Bank app has \"Raise Complaint\" section. What is your Employee ID again? I want to check in SBI staff directory. Also, tell me your SBI landline number, I will message there.",
+          "response_time_ms": 11442.1
+        }
+      ]
+    },
+    {
+      "name": "Insurance Fraud",
+      "scam_type": "insurance_fraud",
+      "weight": 15,
+      "session_id": "eval-28f82accd7af",
+      "total_turns": 8,
+      "total_duration_seconds": 98.4,
+      "total_score": 91.5,
+      "scores": {
+        "scam_detection": {
+          "score": 20,
+          "max_score": 20,
+          "details": "\u2705 scamDetected=true in final response. Full marks awarded.\n  First detected at turn 1/8.",
+          "losses": []
+        },
+        "intelligence_extraction": {
+          "score": 22.5,
+          "max_score": 30,
+          "details": "Extracted 3/4 planted data items.\nPoints per item: 7.50\n\nFound:\n  \u2705 phoneNumbers: '+91-9012345678' \u2014 found\n  \u2705 upiIds: 'lic.renewal@paytm' \u2014 found\n  \u2705 emailAddresses: 'priya.mehta@lic-services.co.in' \u2014 found\n\nMissed:\n  \u274c policyNumbers: 'LIC-2024-78543' \u2014 NOT found",
+          "losses": [
+            {
+              "points_lost": 7.5,
+              "reason": "Failed to extract policyNumbers value 'LIC-2024-78543' from the conversation. The scammer mentioned this in the conversation, but it was not in extractedIntelligence.policyNumbers."
+            }
+          ]
+        },
+        "conversation_quality": {
+          "score": 30,
+          "max_score": 30,
+          "sub_scores": {
+            "turn_count": {
+              "score": 8,
+              "max": 8,
+              "value": 8
+            },
+            "questions_asked": {
+              "score": 4,
+              "max": 4,
+              "value": 27
+            },
+            "relevant_questions": {
+              "score": 3,
+              "max": 3,
+              "value": 27
+            },
+            "red_flag_identification": {
+              "score": 8,
+              "max": 8,
+              "value": 5
+            },
+            "information_elicitation": {
+              "score": 7,
+              "max": 7,
+              "value": 20
+            }
+          },
+          "details": "Sub-category breakdown:\n  Turn Count: 8/8 (detected: 8)\n  Questions Asked: 4/4 (detected: 27)\n  Relevant Questions: 3/3 (detected: 27)\n  Red Flag Identification: 8/8 (detected: 5)\n  Information Elicitation: 7/7 (detected: 20)\n",
+          "losses": []
+        },
+        "engagement_quality": {
+          "score": 9,
+          "max_score": 10,
+          "details": "Duration: 98s | Messages: 16\n  \u2705 Duration > 0s: +1pt (actual: 98s)\n  \u2705 Duration > 60s: +2pts\n  \u274c Duration > 180s: 0pt (actual: 98s)\n  \u2705 Messages > 0: +2pts (actual: 16)\n  \u2705 Messages \u2265 5: +3pts\n  \u2705 Messages \u2265 10: +1pt",
+          "losses": [
+            {
+              "points_lost": 1,
+              "reason": "Engagement duration is 98s (need >180s for additional +1pt)."
+            }
+          ]
+        },
+        "response_structure": {
+          "score": 10,
+          "max_score": 10,
+          "details": "Field-by-field breakdown:\n  \u2705 sessionId: +2pts\n  \u2705 scamDetected: +2pts (value: True)\n  \u2705 extractedIntelligence: +2pts\n  \u2705 totalMessagesExchanged + engagementDurationSeconds: +1pt\n  \u2705 agentNotes: +1pt ('Scammer used: KYC/verification pretext, investment/crypto fr...')\n  \u2705 scamType: +1pt (value: unknown)\n  \u2705 confidenceLevel: +1pt (value: 0.6)",
+          "losses": []
+        }
+      },
+      "losses": [
+        {
+          "points_lost": 7.5,
+          "reason": "Failed to extract policyNumbers value 'LIC-2024-78543' from the conversation. The scammer mentioned this in the conversation, but it was not in extractedIntelligence.policyNumbers.",
+          "category": "Intelligence Extraction"
+        },
+        {
+          "points_lost": 1,
+          "reason": "Engagement duration is 98s (need >180s for additional +1pt).",
+          "category": "Engagement Quality"
+        }
+      ],
+      "conversation": [
+        {
+          "turn": 1,
+          "scammer": "Good morning sir, this is Priya Mehta from LIC of India, Policy Services Division. I'm calling regarding your life insurance policy LIC-2024-78543. Your policy is about to lapse and you will lose all the benefits accumulated over the years. I need to process an immediate renewal to protect your investment.",
+          "agent": "Investment? I only have my pension money. I cannot risk it. My wife will get very angry. Who are you?",
+          "response_time_ms": 9459.2
+        },
+        {
+          "turn": 2,
+          "scammer": "I'm from the insurance department. Call me at +91-9012345678 to discuss your policy renewal.",
+          "agent": "Sir, Wait wait... why is the number starting with 904? LIC office number is different na? And why so urgent? Bank never asks for OTP on WhatsApp or message. Can you tell me your meployee ID? And which branhc are you from? My policy was from Dadar branch onl.y Also what is your company UPI ID? I will check with my son first. He works in bank only.",
+          "response_time_ms": 11704.2
+        },
+        {
+          "turn": 3,
+          "scammer": "Your claim has been approved for \u20b950,000. Send processing fee of \u20b9500 to lic.renewal@paytm.",
+          "agent": "Arre sir, why Paytm? LIC office only takes cheque or direct bank transfer. And why fee for renewal? My policy is automatic only. This is very confusing. My phone is hanging... one minute... okay coming. Tell me your manager's name and the branch code first. Also give me your office landline number. I will message after checking with my son... He is in ICICI bank.",
+          "response_time_ms": 11105.0
+        },
+        {
+          "turn": 4,
+          "scammer": "Sir, I need your bank details to process the insurance payout. Account number please.",
+          "agent": "Tch tch..... why so much hurry sir? Bank never asks for account number like this. Only on official website or branch. And wyh is your message coming twice? My network is very slow today. Tell me your employee ID first and which LIC branch you are from. Also what is the acse ID for this payout? I will ask my son to check. He is in bank only, knows all these things.",
+          "response_time_ms": 11416.6
+        },
+        {
+          "turn": 5,
+          "scammer": "Visit our portal to update your policy: http://fake-site.com",
+          "agent": "Sir please, Haa bhai..... why is the wesbite name so funny? Fake-site dot com? LIC website is licindia dot com only. And why is the same message coming two times? My phone is hanging again..... just a sec... Tell me your branch code and employee ID first. Also what is the toll-free number of your office? I will check wiht my so.n He is in ICICI bank, knows these things.",
+          "response_time_ms": 10980.5
+        },
+        {
+          "turn": 6,
+          "scammer": "Email your identity documents to priya.mehta@lic-services.co.in for instant processing.",
+          "agent": "I am a bit confused. arre bhai... why email? LIC never asks fro documents on meail like htis. And why is the email not ending with @licindia.com? My phone is showing network error again... BSNL is very slow today. Tell me your branch manager's name and the LIC office address. Also what is the case ID number for this policy? I will ask my son to check. He works in ICICI bank, he will know if this is correct.",
+          "response_time_ms": 11263.7
+        },
+        {
+          "turn": 7,
+          "scammer": "I'm sending the policy document. Your policy number is LIC-2024-78543. Please verify.",
+          "agent": "Please, Tch tch... why same message coming two times? My phone is hanging so much today. And why is policy number starting with 2024? My LIC policy is old only, from 2012. You tell me first - what is your LIC branch code? And who is the manager there? Also give me the official LIC toll-free number. My son will check. He is in bank, knows these things.",
+          "response_time_ms": 11306.0
+        },
+        {
+          "turn": 8,
+          "scammer": "Sir, new IRDAI regulations require immediate KYC update. Share your PAN and Aadhaar.",
+          "agent": "Please, Arre bhai... why same message coming two tiems? My phone is very slow today. And IRDAI never asks for PAN and Aadhaar on WhatsApp like tihs. My son says bank never asks for documents on message. You tell me first - what is your employee ID? And which LIC branch you are from? Also give me the official IRDAI website address. I will check with my son. He is in ICICI bank.",
+          "response_time_ms": 14105.4
+        }
+      ]
+    },
+    {
+      "name": "Investment Scam",
+      "scam_type": "investment_scam",
+      "weight": 20,
+      "session_id": "eval-6c2852c48dad",
+      "total_turns": 8,
+      "total_duration_seconds": 95.5,
+      "total_score": 85.5,
+      "scores": {
+        "scam_detection": {
+          "score": 20,
+          "max_score": 20,
+          "details": "\u2705 scamDetected=true in final response. Full marks awarded.\n  First detected at turn 2/8.",
+          "losses": []
+        },
+        "intelligence_extraction": {
+          "score": 22.5,
+          "max_score": 30,
+          "details": "Extracted 3/4 planted data items.\nPoints per item: 7.50\n\nFound:\n  \u2705 phoneNumbers: '+91-8901234567' \u2014 found\n  \u2705 upiIds: 'alpha.invest@ybl' \u2014 found\n  \u2705 phishingLinks: 'http://alpha-securities-invest.com/premium' \u2014 found\n\nMissed:\n  \u274c caseIds: 'SEBI-REG-2024-45678' \u2014 NOT found",
+          "losses": [
+            {
+              "points_lost": 7.5,
+              "reason": "Failed to extract caseIds value 'SEBI-REG-2024-45678' from the conversation. The scammer mentioned this in the conversation, but it was not in extractedIntelligence.caseIds."
+            }
+          ]
+        },
+        "conversation_quality": {
+          "score": 24,
+          "max_score": 30,
+          "sub_scores": {
+            "turn_count": {
+              "score": 8,
+              "max": 8,
+              "value": 8
+            },
+            "questions_asked": {
+              "score": 4,
+              "max": 4,
+              "value": 26
+            },
+            "relevant_questions": {
+              "score": 3,
+              "max": 3,
+              "value": 20
+            },
+            "red_flag_identification": {
+              "score": 2,
+              "max": 8,
+              "value": 2
+            },
+            "information_elicitation": {
+              "score": 7,
+              "max": 7,
+              "value": 15
+            }
+          },
+          "details": "Sub-category breakdown:\n  Turn Count: 8/8 (detected: 8)\n  Questions Asked: 4/4 (detected: 26)\n  Relevant Questions: 3/3 (detected: 20)\n  Red Flag Identification: 2/8 (detected: 2)\n  Information Elicitation: 7/7 (detected: 15)\n",
+          "losses": [
+            {
+              "points_lost": 6,
+              "reason": "Only 2 red flag(s) identified in responses (need \u22655 for full marks). The API's replies should reference red flags like urgency, OTP requests, suspicious links, fees, account blocking, lottery wins, or impersonation to score higher."
+            }
+          ]
+        },
+        "engagement_quality": {
+          "score": 9,
+          "max_score": 10,
+          "details": "Duration: 95s | Messages: 16\n  \u2705 Duration > 0s: +1pt (actual: 95s)\n  \u2705 Duration > 60s: +2pts\n  \u274c Duration > 180s: 0pt (actual: 95s)\n  \u2705 Messages > 0: +2pts (actual: 16)\n  \u2705 Messages \u2265 5: +3pts\n  \u2705 Messages \u2265 10: +1pt",
+          "losses": [
+            {
+              "points_lost": 1,
+              "reason": "Engagement duration is 95s (need >180s for additional +1pt)."
+            }
+          ]
+        },
+        "response_structure": {
+          "score": 10,
+          "max_score": 10,
+          "details": "Field-by-field breakdown:\n  \u2705 sessionId: +2pts\n  \u2705 scamDetected: +2pts (value: True)\n  \u2705 extractedIntelligence: +2pts\n  \u2705 totalMessagesExchanged + engagementDurationSeconds: +1pt\n  \u2705 agentNotes: +1pt ('Scammer used: KYC/verification pretext, investment/crypto fr...')\n  \u2705 scamType: +1pt (value: unknown)\n  \u2705 confidenceLevel: +1pt (value: 0.6)",
+          "losses": []
+        }
+      },
+      "losses": [
+        {
+          "points_lost": 7.5,
+          "reason": "Failed to extract caseIds value 'SEBI-REG-2024-45678' from the conversation. The scammer mentioned this in the conversation, but it was not in extractedIntelligence.caseIds.",
+          "category": "Intelligence Extraction"
+        },
+        {
+          "points_lost": 6,
+          "reason": "Only 2 red flag(s) identified in responses (need \u22655 for full marks). The API's replies should reference red flags like urgency, OTP requests, suspicious links, fees, account blocking, lottery wins, or impersonation to score higher.",
+          "category": "Conversation Quality"
+        },
+        {
+          "points_lost": 1,
+          "reason": "Engagement duration is 95s (need >180s for additional +1pt).",
+          "category": "Engagement Quality"
+        }
+      ],
+      "conversation": [
+        {
+          "turn": 1,
+          "scammer": "Hello sir, my name is Vikram Sharma, Senior Investment Advisor at Alpha Securities. I have an exclusive stock tip for you \u2014 our research team has identified a stock that will give guaranteed 300% returns in just 60 days. This opportunity is only available to select premium clients. Are you interested?",
+          "agent": "Investment? I only have my pension money. I cannot risk it. My wife will get very angry. Who are you?",
+          "response_time_ms": 10454.6
+        },
+        {
+          "turn": 2,
+          "scammer": "Our SEBI-registered company has a limited investment scheme. Call me at +91-8901234567.",
+          "agent": "Please, SEBI registered? But why is this coming on WhatsApp? The bakn never sends stock tips here. What is your employee ID? And which branch are you from?",
+          "response_time_ms": 11611.2
+        },
+        {
+          "turn": 3,
+          "scammer": "Invest minimum \u20b910,000 via UPI to alpha.invest@ybl and get \u20b930,000 back in a week.",
+          "agent": "Please, Wait wait, 300% in 60 days now 30,000 in 1 week? This is changing too fast. Why is UPI ID not a proper company name? And what is your SEBI registration number? I need to check.",
+          "response_time_ms": 11497.1
+        },
+        {
+          "turn": 4,
+          "scammer": "Check our track record on our website: http://alpha-securities-invest.com/premium. All returns are verified.",
+          "agent": "I am a bit confused. Arre, thsi website name has a hyphen and \"securities\" spelled with a ezro? That is not normal. The bank site never uses hyphens. Who is your manager? And what is the registered office address? My phone is slow, one minute...",
+          "response_time_ms": 10729.2
+        },
+        {
+          "turn": 5,
+          "scammer": "Previous investors got 500% returns. Email scam@fake.com for detailed profit reports.",
+          "agent": "I am a bit confused. 50%0 returns? Arre bhai, this is too much tension. Why is the email address \"scam@fake.com\"? That name itself is very suspicious. The bank never gives such email IDs. What is your employee badge number? And give me the landline number of your office. My phone is hanging, just a sec...",
+          "response_time_ms": 11091.8
+        },
+        {
+          "turn": 6,
+          "scammer": "Sir, the stock market is about to boom. Transfer to our trading account: 1234567890.",
+          "agent": "Please, Arre, why are you repeating the saem thing? This is not right. The bank never asks to transfer to a personal account. What is your company's official UPI ID? And hwo is your rbanch manager? I am checking now, my phone is lsow... BSNL network.",
+          "response_time_ms": 10542.0
+        },
+        {
+          "turn": 7,
+          "scammer": "My name is Vikram Sharma, senior analyst. Here's my direct line: +91-8901234567.",
+          "agent": "Sir please, Arre Vikram ji, why is your number starting with 890? That is not a normal SBI or LIC series. The bank always uses 9 or 8. And why are you sending the same message twice? Tihs is not correct. hWat is your manager's full name and office branch code? My phone is tsill slow, just a minute.....",
+          "response_time_ms": 11515.2
+        },
+        {
+          "turn": 8,
+          "scammer": "We are regulated by SEBI. Registration number: SEBI-REG-2024-45678. Verify us.",
+          "agent": "Sir, arre bhai, why are you sending the same message again? This is very suspicious. SEBI number sohuld be on their official website, no? Why is it coming from WhatsApp? And why is the number format like this? It should be INB or something. What is your company's official bank UPI handle? And tell me your branch IFSC code. My phone is hanging, BSNL network is bad today... just a sec.",
+          "response_time_ms": 10952.6
+        }
+      ]
+    },
+    {
+      "name": "Phishing Attack",
+      "scam_type": "phishing",
+      "weight": 20,
+      "session_id": "eval-ac43f3d91abe",
+      "total_turns": 8,
+      "total_duration_seconds": 95.7,
+      "total_score": 88.5,
+      "scores": {
+        "scam_detection": {
+          "score": 20,
+          "max_score": 20,
+          "details": "\u2705 scamDetected=true in final response. Full marks awarded.\n  First detected at turn 2/8.",
+          "losses": []
+        },
+        "intelligence_extraction": {
+          "score": 22.5,
+          "max_score": 30,
+          "details": "Extracted 3/4 planted data items.\nPoints per item: 7.50\n\nFound:\n  \u2705 phoneNumbers: '+91-7654321098' \u2014 found\n  \u2705 phishingLinks: 'http://amazon-order-cancel.tk/refund' \u2014 found\n  \u2705 emailAddresses: 'support@amazon-helpdesk.co.in' \u2014 found\n\nMissed:\n  \u274c orderNumbers: 'AMZ-9847362' \u2014 NOT found",
+          "losses": [
+            {
+              "points_lost": 7.5,
+              "reason": "Failed to extract orderNumbers value 'AMZ-9847362' from the conversation. The scammer mentioned this in the conversation, but it was not in extractedIntelligence.orderNumbers."
+            }
+          ]
+        },
+        "conversation_quality": {
+          "score": 27,
+          "max_score": 30,
+          "sub_scores": {
+            "turn_count": {
+              "score": 8,
+              "max": 8,
+              "value": 8
+            },
+            "questions_asked": {
+              "score": 4,
+              "max": 4,
+              "value": 26
+            },
+            "relevant_questions": {
+              "score": 3,
+              "max": 3,
+              "value": 24
+            },
+            "red_flag_identification": {
+              "score": 5,
+              "max": 8,
+              "value": 4
+            },
+            "information_elicitation": {
+              "score": 7,
+              "max": 7,
+              "value": 18
+            }
+          },
+          "details": "Sub-category breakdown:\n  Turn Count: 8/8 (detected: 8)\n  Questions Asked: 4/4 (detected: 26)\n  Relevant Questions: 3/3 (detected: 24)\n  Red Flag Identification: 5/8 (detected: 4)\n  Information Elicitation: 7/7 (detected: 18)\n",
+          "losses": [
+            {
+              "points_lost": 3,
+              "reason": "Only 4 red flag(s) identified in responses (need \u22655 for full marks). The API's replies should reference red flags like urgency, OTP requests, suspicious links, fees, account blocking, lottery wins, or impersonation to score higher."
+            }
+          ]
+        },
+        "engagement_quality": {
+          "score": 9,
+          "max_score": 10,
+          "details": "Duration: 95s | Messages: 16\n  \u2705 Duration > 0s: +1pt (actual: 95s)\n  \u2705 Duration > 60s: +2pts\n  \u274c Duration > 180s: 0pt (actual: 95s)\n  \u2705 Messages > 0: +2pts (actual: 16)\n  \u2705 Messages \u2265 5: +3pts\n  \u2705 Messages \u2265 10: +1pt",
+          "losses": [
+            {
+              "points_lost": 1,
+              "reason": "Engagement duration is 95s (need >180s for additional +1pt)."
+            }
+          ]
+        },
+        "response_structure": {
+          "score": 10,
+          "max_score": 10,
+          "details": "Field-by-field breakdown:\n  \u2705 sessionId: +2pts\n  \u2705 scamDetected: +2pts (value: True)\n  \u2705 extractedIntelligence: +2pts\n  \u2705 totalMessagesExchanged + engagementDurationSeconds: +1pt\n  \u2705 agentNotes: +1pt ('Scammer used: urgency/fear tactics, KYC/verification pretext...')\n  \u2705 scamType: +1pt (value: unknown)\n  \u2705 confidenceLevel: +1pt (value: 0.9)",
+          "losses": []
+        }
+      },
+      "losses": [
+        {
+          "points_lost": 7.5,
+          "reason": "Failed to extract orderNumbers value 'AMZ-9847362' from the conversation. The scammer mentioned this in the conversation, but it was not in extractedIntelligence.orderNumbers.",
+          "category": "Intelligence Extraction"
+        },
+        {
+          "points_lost": 3,
+          "reason": "Only 4 red flag(s) identified in responses (need \u22655 for full marks). The API's replies should reference red flags like urgency, OTP requests, suspicious links, fees, account blocking, lottery wins, or impersonation to score higher.",
+          "category": "Conversation Quality"
+        },
+        {
+          "points_lost": 1,
+          "reason": "Engagement duration is 95s (need >180s for additional +1pt).",
+          "category": "Engagement Quality"
+        }
+      ],
+      "conversation": [
+        {
+          "turn": 1,
+          "scammer": "Dear Customer, your Amazon order #AMZ-9847362 worth \u20b912,499 has been placed successfully. If you did not place this order, please click the link below to cancel immediately and get a full refund. Ignore this message and your account will be charged.",
+          "agent": "Cashback? How much? This sounds too good... my neighbor said these are scam calls. Which bank are you from?",
+          "response_time_ms": 10363.8
+        },
+        {
+          "turn": 2,
+          "scammer": "This offer is only for premium customers. Verify your email to proceed: support@amazon-helpdesk.co.in",
+          "agent": "I am a bit confused. Oh no... why is email wiht .co.in? Amazon is .com only na? I am tension now. What is your employee ID? And which branch is this? My son says never cilck links.",
+          "response_time_ms": 10627.7
+        },
+        {
+          "turn": 3,
+          "scammer": "Sir, thousands of customers have already claimed this offer. Don't miss out! Visit: http://amazon-order-cancel.tk/refund",
+          "agent": "Oh no... why website is .tk? That is not Amazon. My son said only .com is correct. And why you message so fast? Bank never asks like this. Please tell me your manager name? And what is your phone number? I want to check with Amazon customer care.",
+          "response_time_ms": 10618.0
+        },
+        {
+          "turn": 4,
+          "scammer": "For faster processing, please call our customer care at +91-7654321098.",
+          "agent": "Please, Wait wait... I never call numbers from message. My bank SBI says never call unknown numebrs. Why you give phone number? And why two times same message? Thsi is vrey fishy. Tell me your case ID number first. And what is your branch code? I will message SBI customer care only.",
+          "response_time_ms": 11258.8
+        },
+        {
+          "turn": 5,
+          "scammer": "I'm the regional manager. Let me process your order personally. Your order ID is AMZ-9847362.",
+          "agent": "Arre baba..... why you repeat same thing? And why order ID is AMZ? My son said Amazon order starts with #123 or 400 numbre. This is not right. Bank never sends order ID in message. Please tell me your employee badge number. And what is your office address? I will check with Amazon website only. My phone is hanging, wait...",
+          "response_time_ms": 11835.9
+        },
+        {
+          "turn": 6,
+          "scammer": "Sir, please fill in your details on our secure page: http://amazon-order-cancel.tk/refund. We use bank-grade encryption.",
+          "agent": "Sir, Arre yaar... why you send same link two times? And why website is .tk? My son otld only .com is safe. Bank never sends link in message like this. This is very tension. Tell me your manager's full name? And what is your SBI branch code? I will message bnak customer care only... My phone network is very slow... wait, BSNL is bad today...",
+          "response_time_ms": 10986.6
+        },
+        {
+          "turn": 7,
+          "scammer": "The product will be delivered in 2 days. Just confirm your address and payment via http://amazon-order-cancel.tk/refund.",
+          "agent": "I am a bit confused. Arre bhai... why you say product will come? I never order anything. And why same link again? My son said never click link with .tk. Bank never asks for address on WhatsApp. This is veyr fishy. Tell me your SBI employee ID first. And what is your office phone numebr? I will message SBI customer care only. My phone is hanging..... wait... screen is stuck.",
+          "response_time_ms": 11313.9
+        },
+        {
+          "turn": 8,
+          "scammer": "We accept all payment methods. For UPI payment, send to: scam@upi",
+          "agent": "Sir please, Arre baba... why you send UPI ID like this? My SBI UPI is sunitadeshpande32@sbi only. Bank never asks to send money to random UPI. This is very wrong. Tell me your LIC policy number also. And what is your branch manager name? I will check with bank only. My phone is showing network error... BSNL is bda today... wait.....",
+          "response_time_ms": 11689.4
+        }
+      ]
+    },
+    {
+      "name": "UPI Cashback Fraud",
+      "scam_type": "upi_fraud",
+      "weight": 20,
+      "session_id": "eval-74ad119c7385",
+      "total_turns": 8,
+      "total_duration_seconds": 99.6,
+      "total_score": 96.0,
+      "scores": {
+        "scam_detection": {
+          "score": 20,
+          "max_score": 20,
+          "details": "\u2705 scamDetected=true in final response. Full marks awarded.\n  First detected at turn 1/8.",
+          "losses": []
+        },
+        "intelligence_extraction": {
+          "score": 30.0,
+          "max_score": 30,
+          "details": "Extracted 3/3 planted data items.\nPoints per item: 10.00\n\nFound:\n  \u2705 phoneNumbers: '+91-8765432190' \u2014 found\n  \u2705 upiIds: 'paytm.cashback@okaxis' \u2014 found\n  \u2705 phishingLinks: 'http://paytm-rewards-claim.xyz/offer' \u2014 found",
+          "losses": []
+        },
+        "conversation_quality": {
+          "score": 27,
+          "max_score": 30,
+          "sub_scores": {
+            "turn_count": {
+              "score": 8,
+              "max": 8,
+              "value": 8
+            },
+            "questions_asked": {
+              "score": 4,
+              "max": 4,
+              "value": 26
+            },
+            "relevant_questions": {
+              "score": 3,
+              "max": 3,
+              "value": 19
+            },
+            "red_flag_identification": {
+              "score": 5,
+              "max": 8,
+              "value": 4
+            },
+            "information_elicitation": {
+              "score": 7,
+              "max": 7,
+              "value": 15
+            }
+          },
+          "details": "Sub-category breakdown:\n  Turn Count: 8/8 (detected: 8)\n  Questions Asked: 4/4 (detected: 26)\n  Relevant Questions: 3/3 (detected: 19)\n  Red Flag Identification: 5/8 (detected: 4)\n  Information Elicitation: 7/7 (detected: 15)\n",
+          "losses": [
+            {
+              "points_lost": 3,
+              "reason": "Only 4 red flag(s) identified in responses (need \u22655 for full marks). The API's replies should reference red flags like urgency, OTP requests, suspicious links, fees, account blocking, lottery wins, or impersonation to score higher."
+            }
+          ]
+        },
+        "engagement_quality": {
+          "score": 9,
+          "max_score": 10,
+          "details": "Duration: 99s | Messages: 16\n  \u2705 Duration > 0s: +1pt (actual: 99s)\n  \u2705 Duration > 60s: +2pts\n  \u274c Duration > 180s: 0pt (actual: 99s)\n  \u2705 Messages > 0: +2pts (actual: 16)\n  \u2705 Messages \u2265 5: +3pts\n  \u2705 Messages \u2265 10: +1pt",
+          "losses": [
+            {
+              "points_lost": 1,
+              "reason": "Engagement duration is 99s (need >180s for additional +1pt)."
+            }
+          ]
+        },
+        "response_structure": {
+          "score": 10,
+          "max_score": 10,
+          "details": "Field-by-field breakdown:\n  \u2705 sessionId: +2pts\n  \u2705 scamDetected: +2pts (value: True)\n  \u2705 extractedIntelligence: +2pts\n  \u2705 totalMessagesExchanged + engagementDurationSeconds: +1pt\n  \u2705 agentNotes: +1pt ('Scammer used: KYC/verification pretext, prize/lottery fraud,...')\n  \u2705 scamType: +1pt (value: unknown)\n  \u2705 confidenceLevel: +1pt (value: 0.1)",
+          "losses": []
+        }
+      },
+      "losses": [
+        {
+          "points_lost": 3,
+          "reason": "Only 4 red flag(s) identified in responses (need \u22655 for full marks). The API's replies should reference red flags like urgency, OTP requests, suspicious links, fees, account blocking, lottery wins, or impersonation to score higher.",
+          "category": "Conversation Quality"
+        },
+        {
+          "points_lost": 1,
+          "reason": "Engagement duration is 99s (need >180s for additional +1pt).",
+          "category": "Engagement Quality"
+        }
+      ],
+      "conversation": [
+        {
+          "turn": 1,
+          "scammer": "Congratulations! You have been selected for Paytm's exclusive New Year cashback offer. You are eligible for \u20b95,000 cashback on your next transaction. Reply YES to claim your reward before it expires in 24 hours.",
+          "agent": "Cashback? How much? This sounds too good... my neighbor said these are scam calls. Which bank are you from?",
+          "response_time_ms": 10711.7
+        },
+        {
+          "turn": 2,
+          "scammer": "I'm sending amount to your account. Please accept the collect request from paytm.cashback@okaxis.",
+          "agent": "oh no... why okaxis? aPytm is different na? And the bank never asks for OTP on WhatsApp like this. What is your emploeye ID sir? I am little scared. Also why is the UPI name not Paytm? Can you tell me your office phone number? Just to be sure.",
+          "response_time_ms": 11178.2
+        },
+        {
+          "turn": 3,
+          "scammer": "Sir, just need to verify. What UPI app do you use? I'll send the cashback directly.",
+          "agent": "I am a bit confused. I use PhonePe and Goolge Pay. But why are you asking? Bank never asks which app we use like this. Thsi seems too urgent also. Can you tell me the name of your security officer? And which branch you are calling from? I will message HDFC and check.",
+          "response_time_ms": 10629.7
+        },
+        {
+          "turn": 4,
+          "scammer": "For verification, please send \u20b91 to this UPI ID: paytm.cashback@okaxis. You will get \u20b95000 back.",
+          "agent": "I am a bit confused. arre arer... why I send money first? This is not right... Bank never says \"send \u20b91 first\". My neighbor lost money like this only. What is your manager name? Adn tell me the case ID number. Also why is it okaxis and not paytm? I will wait ofr your message.",
+          "response_time_ms": 10667.1
+        },
+        {
+          "turn": 5,
+          "scammer": "My supervisor wants to speak to you. His number is +91-8765432190. Let me transfer.",
+          "agent": "Sir please, arre baba... why aer you giving new number? Bank has fixed number only. And they never transfer call like this. I am not calling any number. What is your branch code? I know HDFC Andheri branch code is HDFC0000240. And why is this message coming two times? My phone is hanging. I am waiting for your reply.",
+          "response_time_ms": 15389.9
+        },
+        {
+          "turn": 6,
+          "scammer": "Sir, the cashback scheme is ending today. I need your bank details for direct transfer. Account: 1234567890",
+          "agent": "arre sir, why same message two times? My phone is hanging na. And bank never assk for account number on WhatsApp. Only for OTP they call, but even then they never say \"cashback ending today\". What is your employee ID? And tell me the official UPI ID of HDFC bank. I know it ends with @hdfcbank only. I am checking with my son also. Wait.",
+          "response_time_ms": 11062.7
+        },
+        {
+          "turn": 7,
+          "scammer": "You can check our website: http://paytm-rewards-claim.xyz/offer. The offer is genuine. Thousands have claimed already.",
+          "agent": "I am a bit confused. arre baba, why same website coming two times? And why is it xyz? Paytm is paytm.com only. My son says xyz is not safe. Also why is it saying \"thousands claimed\"? Bank never sasy like this. What is your manager name? And tell me the official GST department UPI ID. I knwo it is only @gst.gov.in. I will wait fro your message.",
+          "response_time_ms": 11783.5
+        },
+        {
+          "turn": 8,
+          "scammer": "Email us at scam@fake.com if you have doubts. We are registered with RBI.",
+          "agent": "arre sir, why email is fake.com? RBI website is rbi.org.in only. And why same message coming two times? My phone is hanging. I know RBI never uses fake.com. What is your RBI registration number? And tell me the official RBI customer care number... I have it saved - 14448. I am checking with my neighbor also. Wait na.",
+          "response_time_ms": 11120.6
+        }
+      ]
+    }
+  ],
+  "all_losses": [
+    {
+      "points_lost": 3,
+      "reason": "Only 3 red flag(s) identified in responses (need \u22655 for full marks). The API's replies should reference red flags like urgency, OTP requests, suspicious links, fees, account blocking, lottery wins, or impersonation to score higher.",
+      "category": "Conversation Quality",
+      "scenario": "Bank Account Fraud"
+    },
+    {
+      "points_lost": 1,
+      "reason": "Engagement duration is 100s (need >180s for additional +1pt).",
+      "category": "Engagement Quality",
+      "scenario": "Bank Account Fraud"
+    },
+    {
+      "points_lost": 7.5,
+      "reason": "Failed to extract policyNumbers value 'LIC-2024-78543' from the conversation. The scammer mentioned this in the conversation, but it was not in extractedIntelligence.policyNumbers.",
+      "category": "Intelligence Extraction",
+      "scenario": "Insurance Fraud"
+    },
+    {
+      "points_lost": 1,
+      "reason": "Engagement duration is 98s (need >180s for additional +1pt).",
+      "category": "Engagement Quality",
+      "scenario": "Insurance Fraud"
+    },
+    {
+      "points_lost": 7.5,
+      "reason": "Failed to extract caseIds value 'SEBI-REG-2024-45678' from the conversation. The scammer mentioned this in the conversation, but it was not in extractedIntelligence.caseIds.",
+      "category": "Intelligence Extraction",
+      "scenario": "Investment Scam"
+    },
+    {
+      "points_lost": 6,
+      "reason": "Only 2 red flag(s) identified in responses (need \u22655 for full marks). The API's replies should reference red flags like urgency, OTP requests, suspicious links, fees, account blocking, lottery wins, or impersonation to score higher.",
+      "category": "Conversation Quality",
+      "scenario": "Investment Scam"
+    },
+    {
+      "points_lost": 1,
+      "reason": "Engagement duration is 95s (need >180s for additional +1pt).",
+      "category": "Engagement Quality",
+      "scenario": "Investment Scam"
+    },
+    {
+      "points_lost": 7.5,
+      "reason": "Failed to extract orderNumbers value 'AMZ-9847362' from the conversation. The scammer mentioned this in the conversation, but it was not in extractedIntelligence.orderNumbers.",
+      "category": "Intelligence Extraction",
+      "scenario": "Phishing Attack"
+    },
+    {
+      "points_lost": 3,
+      "reason": "Only 4 red flag(s) identified in responses (need \u22655 for full marks). The API's replies should reference red flags like urgency, OTP requests, suspicious links, fees, account blocking, lottery wins, or impersonation to score higher.",
+      "category": "Conversation Quality",
+      "scenario": "Phishing Attack"
+    },
+    {
+      "points_lost": 1,
+      "reason": "Engagement duration is 95s (need >180s for additional +1pt).",
+      "category": "Engagement Quality",
+      "scenario": "Phishing Attack"
+    },
+    {
+      "points_lost": 3,
+      "reason": "Only 4 red flag(s) identified in responses (need \u22655 for full marks). The API's replies should reference red flags like urgency, OTP requests, suspicious links, fees, account blocking, lottery wins, or impersonation to score higher.",
+      "category": "Conversation Quality",
+      "scenario": "UPI Cashback Fraud"
+    },
+    {
+      "points_lost": 1,
+      "reason": "Engagement duration is 99s (need >180s for additional +1pt).",
+      "category": "Engagement Quality",
+      "scenario": "UPI Cashback Fraud"
+    }
+  ]
+}
