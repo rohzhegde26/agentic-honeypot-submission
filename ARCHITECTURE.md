@@ -77,4 +77,4 @@ To achieve a **perfect 30/30 in Conversation Quality**, the `Persona Node` maint
 - **Structural Integrity**: The API returns 20 points worth of mandatory structure (sessionId, scamDetected, extractedIntelligence, etc.) in every single turn.
 
 ---
-*Built by Team Rohith Hegde for the India AI Impact Buildathon.*
+*Built by Team Gate Keepers for the India AI Impact Buildathon.*

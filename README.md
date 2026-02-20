@@ -129,4 +129,4 @@ python verify_hackathon_submission.py
 - ✅ **Harm Reduction**: Goal is purely defensive engagement of active threats.
 
 ---
-*Created for the India AI Impact Buildathon by Team Rohith Hegde.*
+*Created for the India AI Impact Buildathon by Team Gate Keepers.*

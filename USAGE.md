@@ -80,4 +80,4 @@ The "brain" of the extraction logic lives in `app/core/rules.py`.
 - `benchmark/`: Tools for model A/B testing and Arena dashboard.
 
 ---
-*Maintained by Team Rohith Hegde.*
+*Maintained by Team Gate Keepers.*
