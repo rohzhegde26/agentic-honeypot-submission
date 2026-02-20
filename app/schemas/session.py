@@ -28,6 +28,8 @@ class SessionData(BaseModel):
         default="safe",
         description="Current scam detection level"
     )
+    scam_type: str = Field(default="unknown", description="Detected scam category")
+
     
     # Extracted Intel
     extracted_intelligence: ExtractedIntelligence = Field(

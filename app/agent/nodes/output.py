@@ -8,6 +8,108 @@ from app.core.telemetry import telemetry_manager
 logger = logging.getLogger(__name__)
 
 
+def _final_history_sweep(state: AgentState) -> Dict[str, Any]:
+    """
+    Improvement #2: Final extraction sweep over the complete conversation history.
+
+    Runs all regex extractors over every scammer message in the session history
+    and merges the results with the currently accumulated extracted_intelligence.
+    This ensures intel disclosed at any prior turn is captured even if the per-turn
+    extractor missed it (e.g. due to routing decisions or LLM skips).
+
+    Returns the enriched extracted_intelligence dict.
+    """
+    from app.agent.nodes.extractor import (
+        _extract_upi_ids,
+        _extract_phone_numbers,
+        _extract_links,
+        _extract_bank_accounts,
+        _extract_emails,
+        _extract_staff_ids,
+    )
+    from app.agent.utils.sanitizers import normalize_obfuscated_numbers
+    from app.core.rules import EMAIL_DOMAINS_TO_EXCLUDE
+
+    messages = state.get("messages", [])
+    existing = state.get("extracted_intelligence", {})
+    if hasattr(existing, "model_dump"):
+        existing = existing.model_dump()
+
+    # Collect fake bait values to exclude (persona's own injected data)
+    fake_vals = {
+        str(state.get("fake_phone", "")).lower().strip(),
+        str(state.get("fake_upi", "")).lower().strip(),
+        str(state.get("fake_bank_account", "")).lower().strip(),
+        str(state.get("fake_ifsc", "")).lower().strip(),
+        str(state.get("persona_name", "")).lower().strip(),
+    }
+    fake_vals.discard("")
+
+    sweep_upi: set = set()
+    sweep_phones: set = set()
+    sweep_links: set = set()
+    sweep_accounts: set = set()
+    sweep_emails: set = set()
+    sweep_staff: set = set()
+
+    for msg in messages:
+        sender = str(msg.get("sender", "")).lower()
+        if sender not in ("scammer", "user"):
+            continue  # only scan scammer messages
+        text = msg.get("text", "")
+        if not text:
+            continue
+        norm = normalize_obfuscated_numbers(text)
+
+        for t in (text, norm):
+            for u in _extract_upi_ids(t):
+                if u.lower().strip() not in fake_vals:
+                    sweep_upi.add(u)
+            for p in _extract_phone_numbers(t):
+                if p.lower().strip() not in fake_vals:
+                    sweep_phones.add(p)
+            for lnk in _extract_links(t):
+                if lnk.lower().strip() not in fake_vals:
+                    sweep_links.add(lnk)
+            for acc in _extract_bank_accounts(t):
+                if acc.lower().strip() not in fake_vals:
+                    sweep_accounts.add(acc)
+            for em in _extract_emails(t):
+                if em.lower().strip() not in fake_vals:
+                    sweep_emails.add(em)
+            for sid in _extract_staff_ids(t):
+                if sid.lower().strip() not in fake_vals:
+                    sweep_staff.add(sid)
+
+    enriched = {
+        "upiIds": list(set(existing.get("upiIds", [])) | sweep_upi),
+        "phoneNumbers": list(set(existing.get("phoneNumbers", [])) | sweep_phones),
+        "phishingLinks": list(set(existing.get("phishingLinks", [])) | sweep_links),
+        "bankAccounts": list(set(existing.get("bankAccounts", [])) | sweep_accounts),
+        "emailAddresses": list(set(existing.get("emailAddresses", [])) | sweep_emails),
+        "staffIds": list(set(existing.get("staffIds", [])) | sweep_staff),
+        # Preserve fields not touched by this sweep
+        "suspiciousKeywords": existing.get("suspiciousKeywords", []),
+        "scammerNames": existing.get("scammerNames", []),
+        "ifscCodes": existing.get("ifscCodes", []),
+        "panNumbers": existing.get("panNumbers", []),
+        "sebiHandles": existing.get("sebiHandles", []),
+    }
+
+    new_items = (
+        len(enriched["upiIds"]) - len(existing.get("upiIds", [])) +
+        len(enriched["phoneNumbers"]) - len(existing.get("phoneNumbers", [])) +
+        len(enriched["phishingLinks"]) - len(existing.get("phishingLinks", [])) +
+        len(enriched["bankAccounts"]) - len(existing.get("bankAccounts", [])) +
+        len(enriched["emailAddresses"]) - len(existing.get("emailAddresses", [])) +
+        len(enriched["staffIds"]) - len(existing.get("staffIds", []))
+    )
+    if new_items > 0:
+        logger.info(f"Final history sweep added {new_items} new intel item(s) for session {state.get('session_id', '?')}")
+
+    return enriched
+
+
 def _generate_agent_notes(state: AgentState) -> str:
     """
     Generate agent notes summarizing scam tactics observed.
@@ -70,8 +172,10 @@ async def output_node(state: AgentState) -> Dict[str, Any]:
     turn_count = state.get("turn_count", 0)
     t_start = time.perf_counter()
     agent_reply = state.get("agent_reply", "")
-    extracted_intel = state.get("extracted_intelligence", {})
     is_scam_confirmed = state.get("is_scam_confirmed", False)
+
+    # Improvement #2: Run final history sweep to catch any intel missed by per-turn extractor
+    extracted_intel = _final_history_sweep(state)
     
     # Stalling state tracking (defaults to 0)
     # We use agent_notes or a new field if possible, but for now we look at extracted status
@@ -152,6 +256,7 @@ async def output_node(state: AgentState) -> Dict[str, Any]:
         "termination_reason": termination_reason,
         "agent_notes": agent_notes,
         "intel_found_at_turn": current_intel_found_at,
+        "extracted_intelligence": extracted_intel,  # Include enriched intel from history sweep
         "timing_log": [{"node": "output", "duration_ms": duration_ms}],
     }
 

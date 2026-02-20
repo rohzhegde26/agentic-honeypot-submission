@@ -13,7 +13,10 @@ from app.core.rules import (
     CONFIDENCE_CONFIRMED,
     CONFIDENCE_SUSPECTED,
     CONFIDENCE_SAFE,
+    SCAM_TYPE_KEYWORDS,
+    SCAM_TYPE_UNKNOWN,
 )
+
 
 
 async def detector_node(state: AgentState) -> Dict[str, Any]:
@@ -57,12 +60,22 @@ async def detector_node(state: AgentState) -> Dict[str, Any]:
                 matched = True
                 break
     
-    if not matched:
+    if matched:
+        # Determine Scam Type
+        scam_type = SCAM_TYPE_UNKNOWN
+        for s_type, keywords in SCAM_TYPE_KEYWORDS.items():
+            if any(k in message for k in keywords):
+                scam_type = s_type
+                break
+        result["scam_type"] = scam_type
+    else:
         # Default: safe
         result = {
             "scam_level": "safe",
             "scam_confidence": CONFIDENCE_SAFE,
+            "scam_type": SCAM_TYPE_UNKNOWN,
         }
+
     
     duration_ms = round((time.perf_counter() - t_start) * 1000, 1)
     result["timing_log"] = [{"node": "detector", "duration_ms": duration_ms}]

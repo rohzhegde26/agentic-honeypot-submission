@@ -115,6 +115,26 @@ SUSPECTED_SCAM_KEYWORDS: List[str] = [
     "claim",
 ]
 
+# Scam Type Classification Constants
+SCAM_TYPE_BANK = "bank_fraud"
+SCAM_TYPE_UPI = "upi_fraud"
+SCAM_TYPE_PHISHING = "phishing"
+SCAM_TYPE_JOB = "job/recruitment_scam"
+SCAM_TYPE_INVESTMENT = "investment/crypto_fraud"
+SCAM_TYPE_EMERGENCY = "emergency/emotional_social_engineering"
+SCAM_TYPE_UNKNOWN = "unknown"
+
+# Mapping of keywords to scam types for classification
+SCAM_TYPE_KEYWORDS = {
+    SCAM_TYPE_BANK: ["bank", "sbi", "account", "blocked", "kyc", "card", "atm", "branch"],
+    SCAM_TYPE_UPI: ["upi", "paytm", "gpay", "phonepe", "cashback", "wallet", "qr code", "claim"],
+    SCAM_TYPE_PHISHING: ["link", "click", "url", "website", "http", "www", "portal", "login", "update"],
+    SCAM_TYPE_JOB: ["job", "salary", "work from home", "hiring", "vacancy", "task", "rating", "telegram"],
+    SCAM_TYPE_INVESTMENT: ["investment", "crypto", "bitcoin", "trade", "profit", "trading", "signal"],
+    SCAM_TYPE_EMERGENCY: ["hospital", "accident", "emergency", "stuck", "help", "police", "arrest"],
+}
+
+
 
 # =============================================================================
 # EXTRACTION PATTERNS
@@ -140,6 +160,12 @@ BANK_ACCOUNT_PATTERN: Pattern = re.compile(r'\b\d{9,18}\b')
 
 # Staff ID pattern (common in Indian scams: Staff ID: 1234 or I m Staff Name ID: 1234)
 STAFF_ID_PATTERN: Pattern = re.compile(r'(?i)(?:staff\s*id|employee\s*id|id\s*no|my\s*id|ref\s*id)[\s:]*([A-Z0-9-]{3,12})')
+
+# Case/Order/Policy Number patterns (Higher-order intelligence)
+CASE_ID_PATTERN: Pattern = re.compile(r'(?i)(?:case\s*id|case\s*no|case\s*number)[\s:]*([A-Z0-9-]{4,15})')
+ORDER_NUMBER_PATTERN: Pattern = re.compile(r'(?i)(?:order\s*id|order\s*no|order\s*number)[\s:]*([A-Z0-9-]{4,15})')
+POLICY_NUMBER_PATTERN: Pattern = re.compile(r'(?i)(?:policy\s*no|policy\s*number|policy\s*id)[\s:]*([A-Z0-9-]{4,15})')
+
 
 # IFSC Code pattern (4 uppercase + 0 + 6 alphanumeric) - Bank branch identifier
 # strict Indian IFSC code (4 letters, '0', 6 alphanumeric)

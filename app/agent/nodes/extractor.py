@@ -23,7 +23,12 @@ from app.core.rules import (
     EXTRACT_SYSTEM_PROMPT,
     STAFF_ID_PATTERN,
     EMAIL_PATTERN,
+    CASE_ID_PATTERN,
+    ORDER_NUMBER_PATTERN,
+    POLICY_NUMBER_PATTERN,
 )
+
+
 
 def _clean_item(text: str) -> str:
     """Strip trailing punctuation used in sentences (.,!?;:)]})."""
@@ -113,6 +118,16 @@ def _extract_sebi_handles(text: str) -> List[str]:
     """Extract SEBI @valid handles (investment scam identifiers) using regex."""
     from app.core.rules import SEBI_HANDLE_PATTERN
     return SEBI_HANDLE_PATTERN.findall(text)
+
+def _extract_policy_numbers(text: str) -> List[str]:
+    return POLICY_NUMBER_PATTERN.findall(text)
+
+def _extract_order_numbers(text: str) -> List[str]:
+    return ORDER_NUMBER_PATTERN.findall(text)
+
+def _extract_case_ids(text: str) -> List[str]:
+    return CASE_ID_PATTERN.findall(text)
+
 
 
 # Local normalization replaced by app.agent.utils.sanitizers.normalize_obfuscated_numbers
@@ -327,7 +342,31 @@ async def extractor_node(state: AgentState) -> Dict[str, Any]:
         merged_intel["emailAddresses"]
     )
     
+    # 6. Extract Extended Intel (Case IDs, Order Numbers, Policy Numbers)
+    case_ids = _extract_case_ids(message)
+    order_nums = _extract_order_numbers(message)
+    policy_nums = _extract_policy_numbers(message)
+    
+    extra_notes = []
+    if case_ids: extra_notes.append(f"Case IDs: {', '.join(case_ids)}")
+    if order_nums: extra_notes.append(f"Order Numbers: {', '.join(order_nums)}")
+    if policy_nums: extra_notes.append(f"Policy Numbers: {', '.join(policy_nums)}")
+    
+    if extra_notes:
+        existing_notes = merged_intel.get("agent_notes", "") # use existing if any
+        notes = (notes + "\n" + "\n".join(extra_notes)).strip()
+
     duration_ms = round((time.perf_counter() - t_start) * 1000, 1)
+    
+    result = {
+        "extracted_intelligence": merged_intel,
+        "is_scam_confirmed": state.get("is_scam_confirmed", False) or has_critical_intel,
+        "agent_notes": notes,
+    }
+
+
+    duration_ms = round((time.perf_counter() - t_start) * 1000, 1)
+
     timing_entry = {"node": "extractor", "duration_ms": duration_ms}
     if llm_duration_ms: timing_entry["llm_ms"] = llm_duration_ms
     

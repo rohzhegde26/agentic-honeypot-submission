@@ -13,6 +13,37 @@ from app.schemas.session import SessionData
 
 logger = logging.getLogger(__name__)
 
+
+def _clean_llm_json(text: str) -> str:
+    """
+    Robustly pre-processes an LLM response to extract clean JSON.
+    Handles:
+    - Markdown fences (```json ... ``` or ``` ... ```)
+    - JS-style inline comments (// ...)
+    - Trailing commas before } or ] (invalid in strict JSON)
+    Returns the cleaned string ready for json.loads().
+    """
+    # 1. Strip markdown fences
+    fenced = re.search(r'```(?:json)?\s*(.*?)\s*```', text, re.DOTALL)
+    if fenced:
+        text = fenced.group(1)
+
+    # 2. Extract the outermost JSON object
+    start = text.find('{')
+    end = text.rfind('}')
+    if start != -1 and end != -1:
+        text = text[start:end + 1]
+    else:
+        return text.strip()
+
+    # 3. Remove JS-style inline comments
+    text = re.sub(r'//[^\n]*', '', text)
+
+    # 4. Remove trailing commas before } or ]
+    text = re.sub(r',\s*([}\]])', r'\1', text)
+
+    return text.strip()
+
 async def run_reflection(session: SessionData) -> Dict[str, Any]:
     """
     Analyzes the session and generates a strategic reflection.
@@ -44,22 +75,16 @@ async def run_reflection(session: SessionData) -> Dict[str, Any]:
         response_text = await call_llm("reflection", llm_messages)
         
         try:
-            # Parse JSON with robust extraction
-            clean_json = response_text.strip()
-            
-            # 1. Try to find the first '{' and last '}'
-            start_idx = clean_json.find('{')
-            end_idx = clean_json.rfind('}')
-            
-            if start_idx != -1 and end_idx != -1:
-                json_str = clean_json[start_idx:end_idx+1]
-                try:
-                    data = json.loads(json_str)
-                    logger.info(f"Reflection completed for session {session.session_id}: {data.get('reflection')}")
-                    return data
-                except Exception as e:
-                    logger.error(f"JSON load failed on extracted str: {e}")
-            
+            # Parse JSON with robust pre-processing
+            clean_json = _clean_llm_json(response_text)
+
+            try:
+                data = json.loads(clean_json)
+                logger.info(f"Reflection completed for session {session.session_id}: {data.get('reflection')}")
+                return data
+            except Exception as e:
+                logger.error(f"JSON load failed after cleaning: {e}")
+
             # 2. Fallback: Try to parse conversational output
             logger.warning("Attempting conversational fallback for reflection")
             data = {}

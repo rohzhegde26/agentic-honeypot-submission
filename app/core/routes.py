@@ -340,6 +340,8 @@ async def webhook(
         status="success",
         reply=reply,
         scamDetected=session.is_scam_confirmed,
+        scamType=session.scam_type,
+        confidenceLevel=session.scam_confidence,
         sessionId=session.session_id,
         totalMessagesExchanged=len(session.messages),
         engagementDurationSeconds=engagement_duration,

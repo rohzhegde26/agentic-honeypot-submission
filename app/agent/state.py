@@ -37,6 +37,8 @@ class AgentState(TypedDict):
     scam_confidence: float  # 0.0 to 1.0
     is_scam_confirmed: bool
     scam_level: Literal["safe", "suspected", "confirmed"]
+    scam_type: str  # e.g., "bank_fraud", "upi_fraud", "phishing"
+
     
     # Extracted Intel
     extracted_intelligence: ExtractedData

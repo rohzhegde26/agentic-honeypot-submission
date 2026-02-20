@@ -77,7 +77,10 @@ class WebhookResponse(BaseModel):
     
     # Scoring Fields (20 points for structure)
     scamDetected: bool = Field(default=False, description="Whether scam was detected")
+    scamType: str = Field(default="unknown", description="Categorized scam type")
+    confidenceLevel: float = Field(default=0.0, description="Scam confidence score")
     sessionId: str = Field(default="", description="Redundant session identifier")
+
     totalMessagesExchanged: int = Field(default=0, description="Redundant message count")
     engagementDurationSeconds: int = Field(default=0, description="Redundant duration")
     

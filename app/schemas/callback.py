@@ -64,6 +64,9 @@ class CallbackPayload(BaseModel):
     """
     sessionId: str = Field(..., description="Session identifier")
     scamDetected: bool = Field(..., description="Whether scam was confirmed")
+    scamType: str = Field(default="unknown", description="Categorized scam type")
+    confidenceLevel: float = Field(default=0.0, description="Scam confidence score")
+
     totalMessagesExchanged: int = Field(..., description="Total message count")
     engagementDurationSeconds: int = Field(default=0, description="Redundant duration")
     engagementMetrics: EngagementMetrics = Field(..., description="Nested engagement quality metrics")
