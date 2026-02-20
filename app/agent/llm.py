@@ -64,27 +64,26 @@ def get_openai_client(api_key: Optional[str] = None, model: Optional[str] = None
 
 def get_model_config():
     settings = get_settings()
-    # Hybrid Model Deployment: 
-    # - Mistral 3 for Persona (Dialogue instruction following)
-    # - Kimi K2.5 for Extraction/Reflection (JSON structured output expert)
+    # Stable Deployment: 
+    # Use Mistral 3 via NVIDIA for all tasks to ensure authentication stability.
     return {
         "persona": {
             "primary": "mistralai/mistral-large-3-675b-instruct-2512",
-            "fallback": settings.MODEL_FALLBACK,
+            "fallback": "mistralai/mistral-large-3-675b-instruct-2512",
         },
         "extract": {
-            "primary": settings.MODEL_FALLBACK, # Kimi is better at JSON
+            "primary": "mistralai/mistral-large-3-675b-instruct-2512",
             "fallback": "mistralai/mistral-large-3-675b-instruct-2512",
         },
         "reflection": {
-            "primary": settings.MODEL_FALLBACK, # Kimi is better at JSON
+            "primary": "mistralai/mistral-large-3-675b-instruct-2512",
             "fallback": "mistralai/mistral-large-3-675b-instruct-2512",
         },
     }
 
 
-MAX_RETRIES = 1
-BACKOFF_SECONDS = [1, 2]
+MAX_RETRIES = 3
+BACKOFF_SECONDS = [1, 2, 4]
 
 
 def _strip_thinking_content(content: str) -> str:
@@ -122,7 +121,7 @@ async def _call_with_retry(
                 max_tok = 400
             
             res_format = None
-            if task == "extract" or task == "reflection":
+            if is_fireworks and (task == "extract" or task == "reflection"):
                 res_format = {"type": "json_object"}
 
             if extra_body:
@@ -217,6 +216,7 @@ async def call_llm(task: str, messages: List[Dict]) -> str:
     
     # Final Fallback: Scripted
     if task == "persona" and SCRIPT_FALLBACK_RESPONSES:
+        logger.warning(f"LLM FAILURE: task={task} - Triggering scripted fallback")
         last_msg = messages[-1]["content"].lower() if messages else ""
         if "you" in last_msg and ("are" in last_msg or "who" in last_msg):
             response = "I am a retired person sir, who is this calling me?"
@@ -229,6 +229,7 @@ async def call_llm(task: str, messages: List[Dict]) -> str:
         logger.info(f"LLM SCRIPT FALLBACK: task={task} response='{response[:20]}...'")
         return response
     
+    logger.error(f"LLM CRITICAL FAILURE: task={task} - No fallback available, using SAFE_FALLBACK_RESPONSE")
     return SAFE_FALLBACK_RESPONSE
 
 

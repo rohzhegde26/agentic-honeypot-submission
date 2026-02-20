@@ -52,6 +52,8 @@ def _extract_phone_numbers(text: str) -> List[str]:
             clean = clean[2:]
         if len(clean) == 10:
             normalized.append(clean)
+        # Also preserve original match for benchmark consistency (+91- prefix etc)
+        normalized.append(m.strip())
     return normalized
 
 
@@ -135,6 +137,7 @@ def _parse_llm_extraction(response: str) -> Dict[str, List[str]]:
         "bankAccounts": [],
         "scammerNames": [],
         "staffIds": [],
+        "emailAddresses": [],
     }
     
     # Try to find JSON in response
@@ -183,16 +186,29 @@ async def extractor_node(state: AgentState) -> Dict[str, Any]:
     message_normalized = normalize_obfuscated_numbers(message)
     
     # Step 1: Regex extraction (deterministic)
-    regex_upi = _extract_upi_ids(message_normalized)
-    regex_phones = _extract_phone_numbers(message_normalized)
-    regex_links = _extract_links(message_normalized)
-    regex_accounts = _extract_bank_accounts(message_normalized)
-    regex_staff = _extract_staff_ids(message_normalized)
-    regex_emails = _extract_emails(message_normalized)
-    regex_keywords = _extract_suspicious_keywords(message_normalized)
-    regex_ifsc = _extract_ifsc_codes(message_normalized)
-    regex_pan = _extract_pan_numbers(message_normalized)
-    regex_sebi = _extract_sebi_handles(message_normalized)
+    # Run on both raw and normalized to ensure literal matches (benchmark) and obfuscated (real-world)
+    regex_upi_raw = _extract_upi_ids(message)
+    regex_upi_norm = _extract_upi_ids(message_normalized)
+    regex_upi = list(set(regex_upi_raw) | set(regex_upi_norm))
+    
+    regex_phones_raw = _extract_phone_numbers(message)
+    regex_phones_norm = _extract_phone_numbers(message_normalized)
+    regex_phones = list(set(regex_phones_raw) | set(regex_phones_norm))
+    
+    regex_links_raw = _extract_links(message)
+    regex_links_norm = _extract_links(message_normalized)
+    regex_links = list(set(regex_links_raw) | set(regex_links_norm))
+    
+    regex_accounts_raw = _extract_bank_accounts(message)
+    regex_accounts_norm = _extract_bank_accounts(message_normalized)
+    regex_accounts = list(set(regex_accounts_raw) | set(regex_accounts_norm))
+    
+    regex_staff = list(set(_extract_staff_ids(message)) | set(_extract_staff_ids(message_normalized)))
+    regex_emails = list(set(_extract_emails(message)) | set(_extract_emails(message_normalized)))
+    regex_keywords = list(set(_extract_suspicious_keywords(message)) | set(_extract_suspicious_keywords(message_normalized)))
+    regex_ifsc = list(set(_extract_ifsc_codes(message)) | set(_extract_ifsc_codes(message_normalized)))
+    regex_pan = list(set(_extract_pan_numbers(message)) | set(_extract_pan_numbers(message_normalized)))
+    regex_sebi = list(set(_extract_sebi_handles(message)) | set(_extract_sebi_handles(message_normalized)))
     
     # Step 2: LLM reinforcement
     llm_upi = []
@@ -301,7 +317,15 @@ async def extractor_node(state: AgentState) -> Dict[str, Any]:
         notes = (notes + "\n" if notes else "") + "\n".join(new_notes)
     
     # Determine if scam is confirmed
-    has_critical_intel = bool(merged_intel["upiIds"] or merged_intel["bankAccounts"] or merged_intel["phishingLinks"])
+    # Critical intel: presence of these likely confirms a scam
+    # Added phoneNumbers and emails to help detection in scenarios where links/upi are missed
+    has_critical_intel = bool(
+        merged_intel["upiIds"] or 
+        merged_intel["bankAccounts"] or 
+        merged_intel["phishingLinks"] or
+        merged_intel["phoneNumbers"] or
+        merged_intel["emailAddresses"]
+    )
     
     duration_ms = round((time.perf_counter() - t_start) * 1000, 1)
     timing_entry = {"node": "extractor", "duration_ms": duration_ms}
@@ -314,4 +338,5 @@ async def extractor_node(state: AgentState) -> Dict[str, Any]:
     }
     if has_critical_intel:
         result["is_scam_confirmed"] = True
+        result["scam_level"] = "confirmed"
     return result

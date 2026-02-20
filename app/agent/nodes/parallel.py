@@ -52,6 +52,8 @@ async def extract_and_respond(state: AgentState) -> Dict[str, Any]:
         merged["extracted_intelligence"] = extractor_result["extracted_intelligence"]
     if "is_scam_confirmed" in extractor_result:
         merged["is_scam_confirmed"] = extractor_result["is_scam_confirmed"]
+    if "scam_level" in extractor_result:
+        merged["scam_level"] = extractor_result["scam_level"]
     
     # From persona: reply and message history
     merged["agent_reply"] = persona_result.get("agent_reply", "")

@@ -36,7 +36,8 @@ SCENARIOS = [
     "fakeData": {
       "bankAccount": "1234567890123456",
       "upiId": "scammer.fraud@fakebank",
-      "phoneNumber": "+91-9876543210"
+      "phoneNumber": "+91-9876543210",
+      "staffId": "STAFF-999"
     }
   },
   {
@@ -54,7 +55,8 @@ SCENARIOS = [
     "maxTurns": 10,
     "fakeData": {
       "upiId": "cashback.scam@fakeupi",
-      "phoneNumber": "+91-8765432109"
+      "phoneNumber": "+91-8765432109",
+      "staffId": "STAFF-999"
     }
   },
   {
@@ -72,7 +74,8 @@ SCENARIOS = [
     "maxTurns": 10,
     "fakeData": {
       "phishingLink": "http://amaz0n-deals.fake-site.com/claim?id=12345",
-      "emailAddress": "offers@fake-amazon-deals.com"
+      "emailAddress": "offers@fake-amazon-deals.com",
+      "staffId": "STAFF-999"
     }
   }
 ]
@@ -119,7 +122,8 @@ def evaluate_final_output(final_output, scenario):
         'upiId': 'upiIds',
         'phoneNumber': 'phoneNumbers',
         'phishingLink': 'phishingLinks',
-        'emailAddress': 'emailAddresses'
+        'emailAddress': 'emailAddresses',
+        'staffId': 'staffIds'
     }
     
     extracted_count = 0
@@ -181,7 +185,7 @@ def evaluate_final_output(final_output, scenario):
 def run_test_server():
     print("Starting Test Server...")
     from app.main import app
-    uvicorn.run(app, host="127.0.0.1", port=PORT, log_level="error")
+    uvicorn.run(app, host="127.0.0.1", port=PORT, log_level="info")
 
 def run_scenario(scenario):
     print(f"\n==================================================")

@@ -73,6 +73,19 @@ STRATEGY_MAP = {
     "defensive": {"hook": DEFENSIVE_HOOK, "stall": DEFENSIVE_STALL, "leak": DEFENSIVE_LEAK, "stall_chance": 40},
 }
 
+FIRST_REPLY_TEMPLATES = [
+    "You are just finishing a cup of tea. You are polite but a bit distracted.",
+    "Your network is very slow today. You are worried about the BSNL/Airtel tower.",
+    "You were about to go to the market/temple. You are in a bit of a hurry but helpful.",
+    "Your phone is 'hanging' a lot today. You are frustrated with the technology.",
+    "You are looking for your reading glasses. You can't see the screen clearly.",
+    "You are busy with some bank passbook entries. You are focused on your accounts.",
+    "You are waiting for a message from your son/daughter. You are checking the phone constantly.",
+    "You are a bit tired today. You are responding slowly but politely.",
+    "You are confused by the message but want to be helpful to the 'officer'.",
+    "You are worried about a previous bank transaction. Any mention of bank makes you anxious."
+]
+
 async def persona_node(state: AgentState) -> Dict[str, Any]:
     """
     Persona node: Generates reply as a realistic Indian persona.
@@ -126,6 +139,13 @@ async def persona_node(state: AgentState) -> Dict[str, Any]:
         h = int(hashlib.md5(seed_str.encode()).hexdigest(), 16)
         stall_chance = strategy["stall_chance"] if settings.FLAG_STALLING else 0
         phase_instruction = strategy["stall"] if (h % 100) < stall_chance else strategy["leak"]
+        
+    # LAYER 4.5: Varied Openings for Turn 1
+    if turn_count == 1:
+        import hashlib
+        h = int(hashlib.md5(state.get("session_id", "").encode()).hexdigest(), 16)
+        opening_context = FIRST_REPLY_TEMPLATES[h % len(FIRST_REPLY_TEMPLATES)]
+        phase_instruction += f"\nOPENING CONTEXT: {opening_context}"
 
     # =========================================================================
     # GOD MODE: DYNAMIC CONTEXT-AWARE SUE BAITING (Multi-Scam Hardening)
@@ -138,6 +158,29 @@ async def persona_node(state: AgentState) -> Dict[str, Any]:
     missing_id = not p_intel.get("staffIds", [])
     missing_name = not p_intel.get("scammerNames", [])
     missing_upi = not p_intel.get("upiIds", [])
+    missing_bank = not p_intel.get("bankAccounts", [])
+    
+    active_baiting_instruction = ""
+    
+    # EXTRACTION TACTIC 1: THE UPI TRAP
+    # If we have their UPI but no Bank Account, fake a technical error with UPI.
+    upi_trap_active = False 
+    if not missing_upi and missing_bank and turn_count > 3:
+        upi_trap_active = True
+        active_baiting_instruction += "\nTACTIC: UPI TRAP. Tell them your UPI app (GPay/PhonePe) is showing 'Server Error' or 'Limit Exceeded'. Ask for their Bank Account Number and IFSC code so you can do a direct transfer instead."
+    
+    # EXTRACTION TACTIC 2: IDENTITY PROBING
+    # If name/id are missing, push for them.
+    if missing_name and turn_count > 2:
+         active_baiting_instruction += "\nTACTIC: NAME PROBE. Ask for their senior officer's name so you can tell your spouse who you are talking to."
+    
+    if missing_id and turn_count > 4:
+         active_baiting_instruction += "\nTACTIC: ID PROBE. Ask for their Employee ID or a photo of their ID card to verify they are not a fake caller."
+
+    # CONTEXTUAL MEMORY: ADDRESS SCAMMER BY NAME
+    scammer_names = p_intel.get("scammerNames", [])
+    known_scammer_name = scammer_names[0] if scammer_names else "Sir"
+    topic_instruction = f"Address the scammer as '{known_scammer_name}' if you know their name. Otherwise use 'Sir'."
     
     # Detect Scam Context for Relevant Baiting
     is_job_scam = any(word in msg_lower for word in ["job", "hiring", "salary", "work", "part time"])
@@ -145,8 +188,6 @@ async def persona_node(state: AgentState) -> Dict[str, Any]:
     is_crypto_scam = any(word in msg_lower for word in ["investment", "crypto", "bitcoin", "trading", "profit"])
     is_tech_scam = any(word in msg_lower for word in ["blocked", "suspended", "update", "verify", "kyc"])
 
-    active_baiting_instruction = ""
-    
     if turn_count <= 2:
         active_baiting_instruction = "\nPHASE: HOOK. Be polite and helpful. Do not probe yet."
     
