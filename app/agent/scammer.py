@@ -9,11 +9,90 @@ Key improvements over the previous version:
 """
 import logging
 import re
+import os
+import httpx
 from typing import List, Dict, Optional
-
-from app.agent.llm import call_llm
+from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Dedicated fast LLM client for the scammer agent.
+# Uses a SMALL, FAST model — NOT the big 675B model used by the honeypot.
+# Target: < 5s latency per turn.
+# ---------------------------------------------------------------------------
+
+# Fast scammer models in order of preference
+_SCAMMER_MODELS = [
+    "mistralai/mistral-small-3.1-24b-instruct",     # Fast, ~2-4s on NVIDIA NIM
+    "meta/llama-3.1-8b-instruct",                   # Fastest fallback, ~1-3s
+    "mistralai/mistral-small-latest",                # OpenRouter fallback
+]
+
+_scammer_client: Optional[AsyncOpenAI] = None
+_scammer_model: str = _SCAMMER_MODELS[0]
+
+
+def _get_scammer_client() -> Optional[AsyncOpenAI]:
+    """Lazy-create a dedicated fast client for the scammer agent."""
+    global _scammer_client
+    if _scammer_client is not None:
+        return _scammer_client
+
+    # Prefer NVIDIA NIM (fast inference, good small models)
+    nvidia_key = os.getenv("NVIDIA_API_KEY_PRIMARY") or os.getenv("NVIDIA_API_KEY")
+    if nvidia_key:
+        _scammer_client = AsyncOpenAI(
+            base_url="https://integrate.api.nvidia.com/v1",
+            api_key=nvidia_key,
+            timeout=httpx.Timeout(10.0),  # Hard 10s timeout — fail fast
+        )
+        logger.info("Scammer client: NVIDIA NIM (fast path)")
+        return _scammer_client
+
+    # Fallback: Fireworks AI (also fast)
+    fw_key = os.getenv("FIREWORKS_API_KEY")
+    if fw_key:
+        global _scammer_model
+        _scammer_model = "accounts/fireworks/models/llama-v3p1-8b-instruct"
+        _scammer_client = AsyncOpenAI(
+            base_url="https://api.fireworks.ai/inference/v1",
+            api_key=fw_key,
+            timeout=httpx.Timeout(10.0),
+        )
+        logger.info("Scammer client: Fireworks AI (fast path)")
+        return _scammer_client
+
+    logger.warning("Scammer client: No fast LLM configured, will use scripted fallbacks only.")
+    return None
+
+
+async def _call_scammer_llm(messages: List[Dict]) -> Optional[str]:
+    """Call the dedicated fast scammer LLM with a short timeout."""
+    client = _get_scammer_client()
+    if client is None:
+        return None
+
+    model = _scammer_model
+    models_to_try = _SCAMMER_MODELS if "nvidia" in str(client.base_url) else [model]
+
+    for m in models_to_try:
+        try:
+            completion = await client.chat.completions.create(
+                model=m,
+                messages=messages,
+                temperature=0.75,
+                max_tokens=200,
+                stream=False,
+            )
+            if completion.choices and completion.choices[0].message.content:
+                logger.info(f"Scammer LLM success: model={m}")
+                return completion.choices[0].message.content.strip()
+        except Exception as e:
+            logger.warning(f"Scammer LLM model {m} failed: {e}")
+            continue
+
+    return None
 
 # ---------------------------------------------------------------------------
 # Scenario Base Personas — describe the scammer's CHARACTER, not just the script
@@ -304,7 +383,11 @@ OUTPUT: Write ONLY the scammer's WhatsApp/SMS message. Nothing else. No labels, 
         })
 
     try:
-        reply = await call_llm("scammer", llm_messages)
+        reply = await _call_scammer_llm(llm_messages)
+
+        if not reply:
+            logger.warning(f"Scammer LLM returned empty for {session_id}, using context-aware fallback")
+            return _context_fallback(scenario_type, scammer_turn, last_honeypot_reply)
 
         # Safety: strip any honeypot-style phrases that leaked through
         _HONEYPOT_LEAKS = [
