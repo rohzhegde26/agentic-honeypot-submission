@@ -20,6 +20,7 @@ from app.services.timing import record_session_timing, get_recent_timings
 from app.config import get_settings
 from app.core.security import verify_api_key
 from app.agent.workflow import run_agent
+from app.agent.scammer import run_scammer_agent
 from app.agent.utils.generators import generate_phone_number, generate_upi_id, generate_bank_account, generate_ifsc
 from app.core.telemetry import telemetry_manager
 
@@ -623,6 +624,63 @@ async def demo_chat(
         import traceback
         traceback.print_exc()
         return {"reply": "Sorry sir, my phone app is closing. Please message again.", "status": "error"}
+
+
+class AutoChatRequest(BaseModel):
+    sessionId: str
+    scenarioType: str  # bank_fraud, upi_fraud, phishing
+
+@router.post("/api/chat/auto")
+async def auto_chat(
+    request: AutoChatRequest,
+    background_tasks: BackgroundTasks,
+    session_manager: SessionManager = Depends(get_session_manager),
+):
+    """
+    Automated endpoint for the Showcase mode.
+    Calls the Scammer Agent, then feeds the result to the Honeypot Agent.
+    """
+    from datetime import datetime
+
+    # Get or create session
+    session = await session_manager.get_session(request.sessionId)
+    if session is None:
+        session = SessionData(
+            session_id=request.sessionId,
+            current_user_message="",
+            turn_count=0,
+            messages=[],
+        )
+        await session_manager.save_session(request.sessionId, session)
+
+    # 1. Run Scammer Agent to get the scammer's message
+    scammer_reply = await run_scammer_agent(request.sessionId, request.scenarioType, session.messages)
+    scammer_msg_obj = {
+        "sender": "scammer",
+        "text": scammer_reply,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+    # Format it as a DemoChatRequest to reuse the demo_chat logic
+    demo_req = DemoChatRequest(
+        sessionId=request.sessionId,
+        message=scammer_msg_obj
+    )
+    
+    # 2. Run Honeypot Agent via existing demo_chat logic
+    # The demo_chat function handles adding both the incoming scammer message and the outgoing agent reply to the session history
+    honeypot_response = await demo_chat(demo_req, background_tasks, session_manager)
+    
+    # Return both the scammer's message and the honeypot's response details
+    return {
+        "status": honeypot_response.get("status"),
+        "scammer_message": scammer_reply,
+        "honeypot_reply": honeypot_response.get("reply"),
+        "scamDetected": honeypot_response.get("scamDetected"),
+        "totalMessagesExchanged": honeypot_response.get("totalMessagesExchanged"),
+        "extractedIntelligence": honeypot_response.get("extractedIntelligence"),
+        "agentNotes": honeypot_response.get("agentNotes")
+    }
 
 
 # =============================================================================

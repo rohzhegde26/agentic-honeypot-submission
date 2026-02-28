@@ -118,6 +118,29 @@ body { font-family:'Inter',sans-serif; background:var(--bg-primary); color:var(-
 }
 .reset-btn:hover { border-color:var(--accent-red); color:var(--accent-red); }
 
+/* Auto-Pilot Panel */
+.auto-pilot-panel {
+  padding:12px 16px; background:var(--bg-tertiary); border-top:1px solid var(--border);
+  display:flex; gap:10px; align-items:center; justify-content:space-between;
+}
+.auto-select {
+  background:var(--bg-secondary); border:1px solid var(--border); color:var(--text-primary);
+  padding:6px 10px; border-radius:6px; font-size:0.8rem; flex:1;
+}
+.auto-btn {
+  background:var(--accent-purple); color:#fff; border:none; padding:8px 16px;
+  border-radius:6px; font-size:0.8rem; cursor:pointer; font-weight:600;
+  transition: opacity 0.2s;
+}
+.auto-btn:hover { opacity:0.9; }
+.auto-btn.active { background:var(--accent-red); animation: pulse 2s infinite; }
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(188, 140, 255, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(188, 140, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(188, 140, 255, 0); }
+}
+
 /* Control Panel */
 .control-panel {
   background:var(--bg-secondary); overflow-y:auto; padding:0;
@@ -256,6 +279,17 @@ tr:hover { background:var(--bg-primary); }
       <input type="text" class="chat-input" id="chatInput" placeholder="Type a scam message..." onkeydown="if(event.key==='Enter')sendMessage()">
       <button class="send-btn" id="sendBtn" onclick="sendMessage()">Send ➤</button>
       <button class="reset-btn" onclick="resetChat()">Reset</button>
+    </div>
+    
+    <!-- Auto-Pilot Panel -->
+    <div class="auto-pilot-panel">
+      <span style="font-size:0.8rem;font-weight:600;color:var(--accent-purple)">🤖 Auto-Pilot Showcase:</span>
+      <select class="auto-select" id="autoScenario">
+        <option value="bank_fraud">Bank Fraud Scenario</option>
+        <option value="upi_fraud">UPI Cashback Fraud</option>
+        <option value="phishing">Phishing Link Delivery</option>
+      </select>
+      <button class="auto-btn" id="autoBtn" onclick="toggleAutoPilot()">🚀 Start Simulation</button>
     </div>
   </div>
 
@@ -532,12 +566,87 @@ async function sendMessage() {
 
 function resetChat() {
   sessionId = 'demo-' + Date.now().toString(36);
+  if (autoPilotInterval) toggleAutoPilot(); // Stop auto pilot if running
   const container = document.getElementById('chatMessages');
   container.innerHTML = `<div class="welcome">
     <h2>Session Reset</h2>
     <p>New session started. Type a message to begin.</p>
     <p class="hint">Try: "Hello sir, your bank account has been compromised"</p>
   </div>`;
+}
+
+// Auto-Pilot Logic
+let autoPilotInterval = null;
+
+async function runAutoPilotTurn() {
+  const scenario = document.getElementById('autoScenario').value;
+  addTyping();
+  
+  try {
+    const t0 = performance.now();
+    const resp = await fetch('/api/chat/auto', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: sessionId,
+        scenarioType: scenario
+      }),
+    });
+    const elapsed = Math.round(performance.now() - t0);
+    const data = await resp.json();
+    removeTyping();
+    
+    if (data.status === "error") {
+      addMessage('Error running simulation.', 'honeypot');
+      toggleAutoPilot();
+      return;
+    }
+
+    addMessage(data.scammer_message, 'scammer', `🤖 Auto-Gen`);
+    
+    // Slight delay before honeypot reply pops up for realism
+    setTimeout(() => {
+      addMessage(data.honeypot_reply, 'honeypot', `⏱ ${elapsed}ms`);
+      refreshLogs();
+    }, 800);
+
+  } catch(e) {
+    removeTyping();
+    addMessage('Simulation Error: ' + e.message, 'honeypot');
+    toggleAutoPilot();
+  }
+}
+
+function toggleAutoPilot() {
+  const btn = document.getElementById('autoBtn');
+  const sendBtn = document.getElementById('sendBtn');
+  const chatInput = document.getElementById('chatInput');
+  
+  if (autoPilotInterval) {
+    // Stop
+    clearInterval(autoPilotInterval);
+    autoPilotInterval = null;
+    btn.textContent = '🚀 Start Simulation';
+    btn.classList.remove('active');
+    sendBtn.disabled = false;
+    chatInput.disabled = false;
+    showToast('Auto-Pilot Stopped', 'var(--accent-yellow)');
+  } else {
+    // Start
+    if (document.getElementById('chatMessages').querySelector('.welcome')) {
+      document.getElementById('chatMessages').innerHTML = ''; // clear welcome
+    }
+    
+    sendBtn.disabled = true;
+    chatInput.disabled = true;
+    btn.textContent = '🛑 Stop Simulation';
+    btn.classList.add('active');
+    showToast('Auto-Pilot Started', 'var(--accent-purple)');
+    
+    // Run first turn immediately, then interval
+    runAutoPilotTurn();
+    autoPilotInterval = setInterval(runAutoPilotTurn, 8000); // Poll every 8 seconds
+  }
 }
 
 // Logs

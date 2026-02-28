@@ -79,6 +79,10 @@ def get_model_config():
             "primary": "mistralai/mistral-large-3-675b-instruct-2512",
             "fallback": "mistralai/mistral-large-3-675b-instruct-2512",
         },
+        "scammer": {
+            "primary": "mistralai/mistral-large-3-675b-instruct-2512",
+            "fallback": "mistralai/mistral-large-3-675b-instruct-2512",
+        },
     }
 
 
