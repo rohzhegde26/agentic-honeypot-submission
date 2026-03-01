@@ -1,14 +1,14 @@
 # 🤖 Agent Context
 
-> Auto-generated on **2026-02-15 12:00 UTC** by `scripts/update_context.py`.  
+> Auto-generated on **2026-03-01 17:06 UTC** by `scripts/update_context.py`.  
 > Read this file to instantly understand the project's current state.
 
 ## Current Configuration
 
 | Setting | Value |
 |---|---|
-| Primary Model | `accounts/fireworks/models/kimi-k2p5` |
-| Fallback Model | `mistralai/mistral-large-3-675b-instruct-2512` |
+| Primary Model | `mistralai/mistral-large-3-675b-instruct-2512` |
+| Fallback Model | `accounts/fireworks/models/minimax-m2p5` |
 | Agent Timeout | `28s` |
 | Persona Count | `4` |
 | Prompt Strategy | `default` |
@@ -45,19 +45,20 @@
 
 - **origin**: `https://github.com/RohitBharadwaj-rvu/agentic-honeypot.git`
 - **space**: `https://huggingface.co/spaces/rohithhegde26/agentic-honeypot`
+- **submission**: `https://github.com/rohzhegde26/agentic-honeypot-submission.git`
 
 ## Recent Changes
 
-- `85d690a feat: expanded scam rules and tactical reporting for live finals`
-- `5a21211 fix: environment pollution and context-aware persona rejections`
-- `a0731c6 fix: add missing os import in persona_node`
-- `df6b38a fix: bypass semantic cache in benchmark to prevent duplicate replies`
-- `ae4417b fix: benchmark coordination and session id visibility`
-- `b425b50 feat: enable 3-person multi-user benchmark and fix CI failure`
-- `ae3d80b fix: robust api key validation and forced deployment update`
-- `1a6edd7 fix: remove legacy benchmark routes and fix sub-app asset paths`
-- `6e6036d feat: integrate benchmark arena and results viewer into main GUI`
-- `83c4166 feat: finalize benchmark solo mode and add deep research bundle`
+- `4be743a perf: use dedicated fast LLM for scammer agent to fix auto-pilot timeout`
+- `6ad0967 feat: overhaul scammer agent with phase-based escalation and anti-repetition`
+- `f070024 feat: add context-aware Scammer Agent and Auto-Pilot showcase`
+- `9898e37 final: branding update to Team Gate Keepers and pre-submission audit cleanup`
+- `3da4674 chore: re-sanitize repository (removed evaluation reports accidentally pulled from remote)`
+- `2c244b0 Merge branch 'main' of https://github.com/RohitBharadwaj-rvu/agentic-honeypot`
+- `5cffcd7 feat: finalize score improvements and hackathon schema compliance`
+- `a95b6d8 chore: final repository sanitization - removed residual logs and temp scripts`
+- `68f0ff6 chore: clean up repository for final submission (removed debug scripts and temp logs)`
+- `e6f1096 docs: finalize submission documentation with 98.7/100 score and technical deep dives`
 
 ## Key Files Reference
 
