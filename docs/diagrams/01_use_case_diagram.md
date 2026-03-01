@@ -3,10 +3,10 @@
 ```mermaid
 flowchart LR
     %% Actors
-    SC(["🦹 Scammer"])
-    EV(["🏛️ GUVI Platform"])
-    AD(["🔧 Admin"])
-    DU(["🎮 Demo User"])
+    SC(["\ud83e\uddb9 Scammer"])
+    EV(["\ud83c\udfdb\ufe0f Eval Platform"])
+    AD(["\ud83d\udd27 Admin"])
+    DU(["\ud83c\udfae Demo User"])
 
     subgraph SYS ["  Agentic Honeypot System  "]
         direction TB
@@ -27,9 +27,9 @@ flowchart LR
     SC --> UC1
     UC1 --> UC2 --> UC3 --> UC4 --> UC5
 
-    %% GUVI Platform
+    %% Eval Platform
     EV -->|injects test scenarios| UC1
-    UC5 -->|POST intel report| EV
+    UC5 -->|receives intel report| EV
 
     %% Demo User
     DU --> UC6
