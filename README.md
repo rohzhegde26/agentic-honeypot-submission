@@ -117,4 +117,4 @@ python run.py
 - ✅ **Defensive Focus**: Designed solely to demotivate and gather intelligence on illicit actors.
 
 ---
-*Reimagined for AMD Slingshot (Open Innovation) by Team Gate Keepers.*
+
